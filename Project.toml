@@ -1,0 +1,13 @@
+name = "AdaptiveHierarchicalRegularBinning"
+uuid = "a1dcf1a9-d6bc-402b-9c1f-3b91f24644e2"
+authors = ["Nikolaos Pitsianis <nikos.pitsianis@eng.auth.gr> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
