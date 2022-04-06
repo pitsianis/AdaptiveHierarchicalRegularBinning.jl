@@ -1,0 +1,3 @@
+var documenterSearchIndex = {"docs":
+[{"location":"","page":"Home","title":"Home","text":"CurrentModule = AdaptiveHierarchicalRegularBinning","category":"page"},{"location":"#AdaptiveHierarchicalRegularBinning","page":"Home","title":"AdaptiveHierarchicalRegularBinning","text":"","category":"section"},{"location":"","page":"Home","title":"Home","text":"Documentation for AdaptiveHierarchicalRegularBinning.","category":"page"},{"location":"","page":"Home","title":"Home","text":"","category":"page"},{"location":"","page":"Home","title":"Home","text":"Modules = [AdaptiveHierarchicalRegularBinning]","category":"page"}]
+}
