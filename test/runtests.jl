@@ -1,6 +1,12 @@
 using AdaptiveHierarchicalRegularBinning
 using Test
 
+const files = (
+    "spatial_encode",
+)
+
 @testset "AdaptiveHierarchicalRegularBinning.jl" begin
-    # Write your tests here.
+    @testset "$(titlecase(f)) tests" for f in files
+        include("$f.jl")
+    end
 end

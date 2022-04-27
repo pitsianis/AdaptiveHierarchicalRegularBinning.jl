@@ -1,5 +1,7 @@
 module AdaptiveHierarchicalRegularBinning
 
-# Write your package code here.
+using DocStringExtensions
+
+include("spatial_encode.jl")
 
 end

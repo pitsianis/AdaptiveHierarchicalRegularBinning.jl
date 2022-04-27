@@ -3,6 +3,10 @@ uuid = "a1dcf1a9-d6bc-402b-9c1f-3b91f24644e2"
 authors = ["Nikolaos Pitsianis <nikos.pitsianis@eng.auth.gr> and contributors"]
 version = "0.1.0"
 
+[deps]
+BitOperations = "e1e0eea2-bc69-5bf6-8574-13634873a17c"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+
 [compat]
 julia = "1"
 
