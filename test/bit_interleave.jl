@@ -28,21 +28,22 @@ end
 function bit_interleave_test(n)
     @testset "$(bit_interleave)" begin
         @testset "$T" for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
-            WVec = [ [rand(Bool) for _ in 1:sizeof(T)*8] for _ in 1:n ]
+            shift_reg(b, reg) = (reg<<1) | (b&0x1)
+            toBits(wVec) = foldr(shift_reg, wVec; init=zero(T))
 
-            reducer(wVec) = foldr( (x, acc)->((acc<<1) | (x&0x1)), wVec; init=zero(T) )
+            # Create random
+            WMat = rand(Bool, sizeof(T)*8, n)
 
-            W = reducer.(WVec)
-
-            R = Vector{Bool}(undef, n*sizeof(T)*8)
+            # BoolVec interleave
+            R = Vector{Bool}(undef, prod(size(WMat)))
             for i in 1:n
-                R[i:n:end] .= WVec[i]
+                R[i:n:end] .= WMat[:, i]
             end
+            R = R[1:size(WMat, 1)]
+            expected = toBits(R)
 
-            R = R[1:sizeof(T)*8]
-
-            expected = reducer(R)
-
+            # Bit interleave
+            W = map(toBits, eachslice(WMat, dims=2))
             actual = bit_interleave(W)
 
             @test actual == expected
