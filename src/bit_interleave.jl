@@ -1,11 +1,13 @@
 using BitOperations
 
+# SECTION: Precompilation dependencies
 function has_pdep()
   # NOTE: https://discourse.julialang.org/t/bit-manipulation-instruction-set/5368/9
   CPUInfo = zeros(Int32, 4)
   ccall(:jl_cpuidex, Cvoid, (Ptr{Cint}, Cint, Cint), CPUInfo, 7, 0)
   return CPUInfo[2] & 0x100 != 0
 end
+# !SECTION
 
 # SECTION: Method Selectors
 abstract type InterleaveMethod end
@@ -70,11 +72,38 @@ bit_space(::Type{Pdep}, w::Unsigned, n::Integer) = bit_space(Brute, w, n)
 
 
 # SECTION: bit_interleave
-# TODO: Document
-# TODO: Handle iterators
+# TODO: Handle known-sized iterators
 # TODO: Memoization
+"""
+    $(FUNCTIONNAME)([M, ]W)
+
+Interleaves an array of unsigned integers.
+
+# Arguments
+- `M`: The method with which to interleave
+- `W`: The array
+
+# Examples
+```julia-repl
+julia> $(FUNCTIONNAME)([0x00FF, 0x000F]) |> bitstring
+"0101010111111111"
+
+julia> $(FUNCTIONNAME)([0x000F, 0x00FF]) |> bitstring
+"1010101011111111"
+
+julia> $(FUNCTIONNAME)([0x0080, 0x0001]) |> bitstring
+"0100000000000010"
+
+julia> $(FUNCTIONNAME)([0x0001, 0x0080]) |> bitstring
+"1000000000000001"
+```
+"""
 function bit_interleave(M::Type{<:InterleaveMethod}, W::AbstractVector{<:Unsigned})
+  # TODO: W does not have to be AbstractVector (Any iterator with constant eltype and known size is ok)
   L = length(W)
+
+  L == 0 && return zero(eltype(W))
+  L == 1 && return first(W)
 
   mapper((i, w)) = bit_space(M, w, L - 1) << (i - 1)
   reducer = |
@@ -82,12 +111,25 @@ function bit_interleave(M::Type{<:InterleaveMethod}, W::AbstractVector{<:Unsigne
   return mapreduce(mapper, reducer, enumerate(W); init=zero(eltype(W)))
 end
 
-
 bit_interleave(W::AbstractVector{<:Unsigned}) = bit_interleave(@static(has_pdep() ? Pdep : Brute), W)
-bit_interleave(Ws::T...) where {T<:Unsigned} = bit_interleave(collect(Ws))
-bit_interleave(w::Unsigned) = w
 
-bit_interleave(W::AbstractMatrix{<:Unsigned}; dims::Integer=2) = map(bit_interleave, eachslice(W; dims=dims))
+"""
+$(SIGNATURES)
+
+Interleaves all unsigned integers.
+"""
+bit_interleave(Ws::T...) where {T<:Unsigned} = bit_interleave(collect(Ws))
+
+"""
+    $(FUNCTIONNAME)(W[; dims])
+
+Interleaves all unsigned integers along a dimention.
+
+# Arguments
+- `W`: The matrix
+- `dims`: The dimention. Defaults to 1
+"""
+bit_interleave(W::AbstractMatrix{<:Unsigned}; dims::Integer=1) = map(bit_interleave, eachslice(W; dims=dims))
 # !SECTION
 
 # SECTION: Helpers
@@ -99,7 +141,7 @@ pext(x::UInt32, y::UInt32)::UInt32 = ccall("llvm.x86.bmi.pext.32", llvmcall, UIn
 pext(x::UInt64, y::UInt64)::UInt64 = ccall("llvm.x86.bmi.pext.64", llvmcall, UInt64, (UInt64, UInt64), x, y)
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Generates a spaced mask.
 
@@ -109,22 +151,20 @@ Generates a spaced mask.
 
 # Examples
 ```julia-repl
-julia> brmask(UInt8, 0) |> bitstring
+julia> $(FUNCTIONNAME)(UInt8, 0) |> bitstring
 "11111111"
 
-julia> brmask(UInt8, 1) |> bitstring
+julia> $(FUNCTIONNAME)(UInt8, 1) |> bitstring
 "01010101"
 
-julia> brmask(UInt8, 2) |> bitstring
+julia> $(FUNCTIONNAME)(UInt8, 2) |> bitstring
 "01001001"
 
-julia> brmask(UInt8, 3) |> bitstring
+julia> $(FUNCTIONNAME)(UInt8, 3) |> bitstring
 "00010001"
 ```
 """
-bit_space_mask(T::Type{<:Unsigned}, n::Integer) = bit_space_mask_memoized(T, Val(n))
-
-function bit_space_mask_impl(T::Type{<:Unsigned}, n::Integer)
+function bit_space_mask(T::Type{<:Unsigned}, n::Integer)
   # TODO: Pure?
   # TODO: Memoization? https://github.com/JuliaCollections/Memoize.jl
   mask = bmask(T, n)
@@ -137,14 +177,10 @@ function bit_space_mask_impl(T::Type{<:Unsigned}, n::Integer)
   while k > 0
     mask |= mask << s
 
-    # TODO: Bitshifts?
-    s *= 2
-    k ÷= 2
+    s <<= 1
+    k >>= 1
   end
 
   return (mask << 1) | 0x01
 end
-
-# FIXME: Memoization hurts performance
-@generated bit_space_mask_memoized(::Type{T}, ::Val{n}) where {T<:Unsigned, n} = :($(bit_space_mask_impl(T, n)))
 # !SECTION
