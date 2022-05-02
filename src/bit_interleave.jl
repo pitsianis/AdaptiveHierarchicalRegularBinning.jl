@@ -58,12 +58,12 @@ end
 
 # SECTION: pdep
 # Conversions for small UInts
-bit_space(::Type{Pdep}, w::UInt8, n::Integer) = convert(UInt8, bit_space(Pdep, convert(UInt32, w), n) & 0xFF)
+bit_space(::Type{Pdep}, w::UInt8,  n::Integer) = convert(UInt8,  bit_space(Pdep, convert(UInt32, w), n) & 0xFF)
 bit_space(::Type{Pdep}, w::UInt16, n::Integer) = convert(UInt16, bit_space(Pdep, convert(UInt32, w), n) & 0xFFFF)
 
 # Imlementations for Pdep
-bit_space(::Type{Pdep}, w::UInt32, n::Integer) = pdep(w, bit_space_mask(typeof(w), n))
-bit_space(::Type{Pdep}, w::UInt64, n::Integer) = pdep(w, bit_space_mask(typeof(w), n))
+bit_space(::Type{Pdep}, w::UInt32, n::Integer) = pdep(w, bit_space_mask(UInt32, n))
+bit_space(::Type{Pdep}, w::UInt64, n::Integer) = pdep(w, bit_space_mask(UInt64, n))
 
 # Generic fallback (mainly for UInt128)
 bit_space(::Type{Pdep}, w::Unsigned, n::Integer) = bit_space(Brute, w, n)
@@ -105,10 +105,13 @@ function bit_interleave(M::Type{<:InterleaveMethod}, W::AbstractVector{<:Unsigne
   L == 0 && return zero(eltype(W))
   L == 1 && return first(W)
 
-  mapper((i, w)) = bit_space(M, w, L - 1) << (i - 1)
-  reducer = |
+  # TODO: mapreduce is slower than this implementation
+  ret = zero(eltype(W))
+  for w in Iterators.reverse(W)
+    ret = (ret << 1) | bit_space(M, w, L-1)
+  end
 
-  return mapreduce(mapper, reducer, enumerate(W); init=zero(eltype(W)))
+  return ret
 end
 
 bit_interleave(W::AbstractVector{<:Unsigned}) = bit_interleave(@static(has_pdep() ? Pdep : Brute), W)
@@ -134,11 +137,32 @@ bit_interleave(W::AbstractMatrix{<:Unsigned}; dims::Integer=1) = map(bit_interle
 
 # SECTION: Helpers
 # NOTE: https://lemire.me/blog/2018/01/08/how-fast-can-you-bit-interleave-32-bit-integers/
+# SECTION: pdep
 pdep(x::UInt32, y::UInt32)::UInt32 = ccall("llvm.x86.bmi.pdep.32", llvmcall, UInt32, (UInt32, UInt32), x, y)
 pdep(x::UInt64, y::UInt64)::UInt64 = ccall("llvm.x86.bmi.pdep.64", llvmcall, UInt64, (UInt64, UInt64), x, y)
 
 pext(x::UInt32, y::UInt32)::UInt32 = ccall("llvm.x86.bmi.pext.32", llvmcall, UInt32, (UInt32, UInt32), x, y)
 pext(x::UInt64, y::UInt64)::UInt64 = ccall("llvm.x86.bmi.pext.64", llvmcall, UInt64, (UInt64, UInt64), x, y)
+# !SECTION
+
+
+# SECTION: bit_space_mask
+function bit_space_mask_impl(T::Type{<:Unsigned}, n::Integer)
+  mask = bmask(T, n)
+  # Shift amount
+  s = n+1
+
+  # Last segment mask
+  lsmask = bmask(T, bsizeof(T)-s:bsizeof(T))
+  lsmask == 0 && return one(T)
+
+  while mask & lsmask == 0
+    mask |= mask << s
+    s <<= 1
+  end
+
+  return (mask << 1) | 0x01
+end
 
 """
 $(SIGNATURES)
@@ -164,23 +188,14 @@ julia> $(FUNCTIONNAME)(UInt8, 3) |> bitstring
 "00010001"
 ```
 """
-function bit_space_mask(T::Type{<:Unsigned}, n::Integer)
-  # TODO: Pure?
-  # TODO: Memoization? https://github.com/JuliaCollections/Memoize.jl
-  mask = bmask(T, n)
+bit_space_mask(::Type{<:Unsigned}, ::Integer) = throw("Not Implemented")
 
-  # Remaining number of segments
-  k = bsizeof(mask) ÷ (n + 1)
-  # Shift amount
-  s = n + 1
-
-  while k > 0
-    mask |= mask << s
-
-    s <<= 1
-    k >>= 1
+for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
+  let
+    # Memoization
+    cache = ntuple((i)->bit_space_mask_impl(T, i-1), bsizeof(T))
+    eval(:(bit_space_mask(::Type{$T}, n::Integer) = n >= $(length(cache)) ? $(last(cache)) : @inbounds $(cache)[n+1]))
   end
-
-  return (mask << 1) | 0x01
 end
+# !SECTION
 # !SECTION
