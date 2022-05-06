@@ -59,6 +59,12 @@ Spatially encode a single point `0 ≤ p < 1` for L levels
   return t.chunks[1]
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Spatially encode the point cloud coordinates `x` for L levels
+  `dims` denotes the dimension that contains the coordinates of a single point.
+"""
 function spatial_encode(x,L; dims=2)
   n = size(x, dims==2 ? 1 : 2)
   d = size(x, dims)
