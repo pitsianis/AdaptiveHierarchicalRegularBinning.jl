@@ -6,7 +6,7 @@ using Plots
 
 function bmark_single(countsort_impl!, d, n, TR=UInt8)
   B = @benchmark(
-    $countsort_impl!(Va, Ra, Ia, Vb, Rb, Ib, C),
+    $countsort_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, lo, hi, nbyte),
     setup=begin
       Va = rand($d, $n)
       Ra = rand($TR, $n)
@@ -15,6 +15,11 @@ function bmark_single(countsort_impl!, d, n, TR=UInt8)
       Vb = similar(Va)
       Rb = similar(Ra)
       Ib = similar(Ia)
+
+      lo = UInt(1)
+      hi = UInt(length(Ra))
+
+      nbyte = UInt(1)
 
       C = Dict(
         countsort_seq_impl! => ()->Vector{UInt}(undef, maximum(Ra)+1),

@@ -14,15 +14,17 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
   - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`.
   - `Ib`: A vector to store the resulting permutation. Must be of length `n`.
 
-  - `C`: A vector acting as a working space for the parallel countsort algorithm. Must be of length `maximum(Ra)+1`.
+  - `C`: A vector acting as a working space for the parallel countsort algorithm. Must be of length `256`.
 
   - `lo`: Start index.
   - `hi`: End index.
+
+  - `nbyte`: The n-th most significant byte.
 """
-countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned, nbyte::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
   fill!(C, 0)
 
-  @inline to_index(x) = x + 1
+  @inline to_index(x) = (x >> (8 * (sizeof(eltype(Ra)) - nbyte))) & 0xFF + 1
 
   for i in lo:hi
     C[to_index(Ra[i])] += 1
@@ -55,21 +57,23 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
             Sorting will be executed based on this vector.
   - `Ia`: The current permutation of `Va`. Must be of length `n`.
 
-  - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`
-  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`
-  - `Ib`: A vector to store the resulting permutation. Must be of length `n`
+  - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`.
+  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`.
+  - `Ib`: A vector to store the resulting permutation. Must be of length `n`.
 
-  - `C`: A matrix acting as a working space for the parallel countsort algorithm. Must be of size `(maximum(Ra)+1, Threads.nthreads())`
+  - `C`: A matrix acting as a working space for the parallel countsort algorithm. Must be of size `(256, Threads.nthreads())`.
 
   - `lo`: Start index.
   - `hi`: End index.
+
+  - `f`: The transformation to apply.
 """
-countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
+countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned, nbyte::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
   n  = hi - lo + 1
   np = Threads.nthreads()
   b  = cld(n, np)
 
-  @inline to_index(x) = x + 1
+  @inline to_index(x) = (x >> (8 * (sizeof(eltype(Ra)) - nbyte))) & 0xFF + 1
   @inline local_range(k) = (k-1)*b + lo : min(k*b, n) + lo - 1
 
   fill!(C, 0)
