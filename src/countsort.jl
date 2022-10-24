@@ -1,6 +1,22 @@
-using Static
+"""
+$(TYPEDSIGNATURES)
 
-countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
+Sequential countsort.
+Inputs `Va`, `Ra`, `Ia` are not altered.
+
+ - `Va`: The matrix to sort.
+          Assuming `Va` is of size `(d, n)` then `d` is the number of dimensions and `n` is the number of elements.
+ - `Ra`: The representation vector of `Va`. Must be of length `n`.
+          Sorting will be executed based on this vector.
+ - `Ia`: The current permutation of `Va`. Must be of length `n`.
+
+ - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`
+ - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`
+ - `Ib`: A vector to store the resulting permutation. Must be of length `n`
+
+  - `C`: A vector acting as a working space for the parallel countsort algorithm. Must be of length `maximum(Ra)`
+"""
+countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
   fill!(C, 0)
 
   for r in Ra
@@ -20,7 +36,26 @@ countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
   end
 end
 
-countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
+
+"""
+$(TYPEDSIGNATURES)
+
+Multithreaded countsort.
+Inputs `Va`, `Ra`, `Ia` are not altered.
+
+ - `Va`: The matrix to sort.
+          Assuming `Va` is of size `(d, n)` then `d` is the number of dimensions and `n` is the number of elements.
+ - `Ra`: The representation vector of `Va`. Must be of length `n`.
+          Sorting will be executed based on this vector.
+ - `Ia`: The current permutation of `Va`. Must be of length `n`.
+
+ - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`
+ - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`
+ - `Ib`: A vector to store the resulting permutation. Must be of length `n`
+
+  - `C`: A matrix acting as a working space for the parallel countsort algorithm. Must be of size `(maximum(Ra), Threads.nthreads())`
+"""
+countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
   n  = length(Ra)
   np = Threads.nthreads()
   b  = cld(n, np)
