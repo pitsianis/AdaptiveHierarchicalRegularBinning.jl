@@ -73,16 +73,15 @@ end
 countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
   fill!(C, 0)
 
-  Coff = C[2:end]
   for r in Ra
-    Coff[r] += 1
+    C[r] += 1
   end
 
   cumsum!(C, C)
 
   for i in eachindex(Ra)
-    C[Ra[i]] += 1
     j = C[Ra[i]]
+    C[Ra[i]] -= 1
 
     Vb[:, j] = Va[:, i]
     Rb[j]    = Ra[i]
