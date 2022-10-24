@@ -1,19 +1,33 @@
-using AdaptiveHierarchicalRegularBinning: countsortperm!, pcountsortperm!
+using AdaptiveHierarchicalRegularBinning: countsort_seq_impl!, countsort_par_impl!
 using Test
 
-@testset "seq and parallel count sort" begin
-  n = 40_000
-  m = 7
-  np = Threads.nthreads()
-  v = Int64.(ceil.(rand(n) .* m))
-  p = similar(v)
-  q = similar(v)
-  Caux = zeros(Int64,m+8,np+1)
-  C    = zeros(Int64,m+1)
+@testset "countsort" begin
+  n = 10_000
+  d = 3
 
-  pcountsortperm!(p,v,Caux)
-  countsortperm!(q,v,C)
+  Va = rand(d, n)
+  Ra = rand(UInt8, n)
+  Ia = UInt.(1:n)
 
-  @test isperm(p) && isperm(q)
-  @test v[p] == v[sortperm(v)] && v[q] == v[sortperm(v)]
+  Vb = similar(Va)
+  Rb = similar(Ra)
+  Ib = similar(Ia)
+
+  @testset "Sequential" begin
+    C = Vector{UInt}(undef, maximum(Ra)+1)
+    countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C)
+
+    @test issorted(Rb)
+    @test Ra == Rb[sortperm(Ib)]
+    @test Va == Vb[:, sortperm(Ib)]
+  end
+
+  @testset "Parallel" begin
+    C = Matrix{UInt}(undef, maximum(Ra)+1, Threads.nthreads())
+    countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, C)
+
+    @test issorted(Rb)
+    @test Ra == Rb[sortperm(Ib)]
+    @test Va == Vb[:, sortperm(Ib)]
+  end
 end
