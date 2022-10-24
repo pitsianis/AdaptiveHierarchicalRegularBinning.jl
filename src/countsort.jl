@@ -13,6 +13,7 @@ countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
     j = C[Ra[i]]
     C[Ra[i]] -= 1
 
+    # TODO: `selectdim(Vb, dims, j) .= selectdim(Va, dims, i)`
     Vb[:, j] .= Va[:, i]
     Rb[j]     = Ra[i]
     Ib[j]     = Ia[i]
