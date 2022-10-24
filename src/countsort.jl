@@ -1,3 +1,5 @@
+using Static
+
 countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
   fill!(C, 0)
 
@@ -11,9 +13,9 @@ countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
     j = C[Ra[i]]
     C[Ra[i]] -= 1
 
-    Vb[:, j] = Va[:, i]
-    Rb[j]    = Ra[i]
-    Ib[j]    = Ia[i]
+    Vb[:, j] .= Va[:, i]
+    Rb[j]     = Ra[i]
+    Ib[j]     = Ia[i]
   end
 end
 
@@ -41,9 +43,9 @@ countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, C) = @inbounds @views begin
       j = C[Ra[i], k]
       C[Ra[i], k] -= 1
 
-      Vb[:, j] = Va[:, i]
-      Rb[j]    = Ra[i]
-      Ib[j]    = Ia[i]
+      Vb[:, j] .= Va[:, i]
+      Rb[j]     = Ra[i]
+      Ib[j]     = Ia[i]
     end
   end
 end
