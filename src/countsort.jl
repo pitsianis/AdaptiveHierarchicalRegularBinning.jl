@@ -14,20 +14,22 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`
  - `Ib`: A vector to store the resulting permutation. Must be of length `n`
 
-  - `C`: A vector acting as a working space for the parallel countsort algorithm. Must be of length `maximum(Ra)`
+  - `C`: A vector acting as a working space for the parallel countsort algorithm. Must be of length `maximum(Ra)+1`
 """
 countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
   fill!(C, 0)
 
+  @inline to_index(x) = x + 1
+
   for r in Ra
-    C[r] += 1
+    C[to_index(r)] += 1
   end
 
   cumsum!(C, C)
 
   for i in eachindex(Ra)
-    j = C[Ra[i]]
-    C[Ra[i]] -= 1
+    j = C[to_index(Ra[i])]
+    C[to_index(Ra[i])] -= 1
 
     # TODO: `selectdim(Vb, dims, j) .= selectdim(Va, dims, i)`
     Vb[:, j] .= Va[:, i]
@@ -53,20 +55,21 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`
  - `Ib`: A vector to store the resulting permutation. Must be of length `n`
 
-  - `C`: A matrix acting as a working space for the parallel countsort algorithm. Must be of size `(maximum(Ra), Threads.nthreads())`
+  - `C`: A matrix acting as a working space for the parallel countsort algorithm. Must be of size `(maximum(Ra)+1, Threads.nthreads())`
 """
 countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
   n  = length(Ra)
   np = Threads.nthreads()
   b  = cld(n, np)
 
+  @inline to_index(x) = x + 1
   @inline local_range(k) = (k-1)*b + 1 : min(k*b, n)
 
   fill!(C, 0)
 
   Threads.@threads for k=1:np
     for i in local_range(k)
-      C[Ra[i], k] += 1
+      C[to_index(Ra[i]), k] += 1
     end
   end
 
@@ -76,8 +79,8 @@ countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC) where
 
   Threads.@threads for k=1:np
     for i in local_range(k)
-      j = C[Ra[i], k]
-      C[Ra[i], k] -= 1
+      j = C[to_index(Ra[i]), k]
+      C[to_index(Ra[i]), k] -= 1
 
       Vb[:, j] .= Va[:, i]
       Rb[j]     = Ra[i]
