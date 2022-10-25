@@ -39,7 +39,7 @@ radixsort_par_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, lo, hi, l) = @inbounds @views
 
     nb = nhi-nlo+1
 
-    # TODO: Early continue for nb <= 1
+    nb <= 1 && continue
 
     if nb > N_BIG_ARRAY
       Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nlo, $nhi, l+1)
@@ -50,18 +50,20 @@ radixsort_par_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, lo, hi, l) = @inbounds @views
 
 end
 
-radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, lo, hi, l) = begin
+radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, lo, hi, l) = @inbounds @views begin
 
   Cm = Matrix{UInt}(undef, 256, Threads.nthreads())
   C  = Cm[:, end]
   countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, Cm, lo, hi, l)
   minimum!(C, Cm)
 
-  for j in 1:length(C)
+  @sync for j in 1:length(C)
     nlo = C[j]+1
     nhi = j != length(C) ? C[j+1] : hi
 
     nb = nhi-nlo+1
+
+    nb <= 1 && continue
 
     if nb > N_REALY_BIG_ARRAY
       Threads.@spawn radixsort_par_par_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nlo, $nhi, l+1)
