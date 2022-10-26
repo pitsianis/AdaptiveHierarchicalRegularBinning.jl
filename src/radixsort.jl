@@ -218,6 +218,8 @@ radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
   minimum!(reshape(C, :, 1), Cm)
   free!(rsd, Cm)
 
+  P[rsd] .= level(rsd)%2
+
   @sync for j in 1:length(C)
     nlo = C[j]+1
     nhi = j != length(C) ? C[j+1] : last(rsd)
