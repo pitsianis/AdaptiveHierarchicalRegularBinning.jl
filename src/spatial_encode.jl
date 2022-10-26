@@ -31,8 +31,6 @@ i.e. if the `i`^th point is `p[i,:]`, then set `dims=2`.
 """
 function translate_scale_vals(p; center = false, dims = 2)
 
-  dims = (dims == 2) ? 1 : 2
-
   displ = minimum(p, dims=dims)
   scale = maximum(p, dims=dims)
   scale = maximum(scale .- displ)
@@ -42,11 +40,11 @@ function translate_scale_vals(p; center = false, dims = 2)
   if center
     displ /= 2.0
   end
-  return (displ,scale)
+  return (reshape(displ, :),scale)
 end
 
 @inline function quantize(p, L)
-  Int.(floor.(p .* 2^L))
+  floor.(UInt, p .* 2^L)
 end
 
 """
@@ -65,16 +63,21 @@ $(TYPEDSIGNATURES)
 Spatially encode the point cloud coordinates `x` for L levels
   `dims` denotes the dimension that contains the coordinates of a single point.
 """
-function spatial_encode(x,L; dims=2)
-  n = size(x, dims==2 ? 1 : 2)
-  d = size(x, dims)
-  δ, σ = translate_scale_vals(x; dims=dims)
+function spatial_encode(V, L; dims=2)
+  d, n = size(V)
+  if dims != 2
+    d, n = n, d
+  end
 
-  c = Vector{UInt64}(undef,n)
-  @inbounds Threads.@threads for i=1:n
-    y = σ * ((@view x[i:i,:]) .- δ)
-    q = quantize(y,L)
-    c[i] = morton(q,L)
+  δ, σ = translate_scale_vals(V; dims=dims)
+
+  c = Vector{UInt64}(undef, n)
+  for i=1:n
+    x = selectdim(V, dims, i)
+    x = reshape(x, :)
+    y  = σ * (x .- δ)
+    q = quantize.(y, L)
+    c[i] = bit_interleave(q)
   end
 
   return (c, δ, σ)
