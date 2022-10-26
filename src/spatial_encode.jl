@@ -72,7 +72,10 @@ function spatial_encode(V, L; dims=2)
   δ, σ = translate_scale_vals(V; dims=dims)
 
   c = Vector{UInt64}(undef, n)
-  for i=1:n
+  @inbounds Threads.@threads for i=1:n
+    # FIXME: selectdim -> performance impact
+    # Either stick to only one nxd or dxn
+    # Or create compile-time selectdim
     x = selectdim(V, dims, i)
     x = reshape(x, :)
     y  = σ * (x .- δ)
