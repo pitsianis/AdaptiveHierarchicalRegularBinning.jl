@@ -1,3 +1,4 @@
+# TODO: comments
 """
 $(TYPEDSIGNATURES)
 
@@ -21,11 +22,13 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
 
   - `nbyte`: The n-th most significant byte.
 """
-countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned, nbyte::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::CountSortDetails) where {TV<:AbstractArray, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+  lo = low(csd)
+  hi = high(csd)
+
+  to_index(x) = radixsel(csd, x) + 1
+
   fill!(C, 0)
-
-  @inline to_index(x) = (x >> (8 * (sizeof(eltype(Ra)) - nbyte))) & 0xFF + 1
-
   for i in lo:hi
     C[to_index(Ra[i])] += 1
   end
@@ -34,13 +37,14 @@ countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::U
   C .+= lo - 1
 
   for i in lo:hi
-    j = C[to_index(Ra[i])]
-    C[to_index(Ra[i])] -= 1
+    ci = to_index(Ra[i])
 
-    # TODO: `selectdim(Vb, dims, j) .= selectdim(Va, dims, i)`
-    Vb[:, j] .= Va[:, i]
-    Rb[j]     = Ra[i]
-    Ib[j]     = Ia[i]
+    j = C[ci]
+    C[ci] -= 1
+
+    selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+    Rb[j] = Ra[i]
+    Ib[j] = Ia[i]
   end
 end
 
@@ -68,16 +72,18 @@ Inputs `Va`, `Ra`, `Ia` are not altered.
 
   - `f`: The transformation to apply.
 """
-countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::Unsigned, hi::Unsigned, nbyte::Unsigned) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
+countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::CountSortDetails) where {TV<:AbstractArray, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
+  lo = low(csd)
+  hi = high(csd)
+
   n  = hi - lo + 1
   np = Threads.nthreads()
   b  = cld(n, np)
 
-  @inline to_index(x) = (x >> (8 * (sizeof(eltype(Ra)) - nbyte))) & 0xFF + 1
-  @inline local_range(k) = (k-1)*b + lo : min(k*b, n) + lo - 1
+  to_index(x) = radixsel(csd, x) + 1
+  local_range(k) = (k-1)*b + lo : min(k*b, n) + lo - 1
 
   fill!(C, 0)
-
   Threads.@threads for k=1:np
     for i in local_range(k)
       C[to_index(Ra[i]), k] += 1
@@ -91,12 +97,14 @@ countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, lo::U
 
   Threads.@threads for k=1:np
     for i in local_range(k)
-      j = C[to_index(Ra[i]), k]
-      C[to_index(Ra[i]), k] -= 1
+      ci = to_index(Ra[i])
 
-      Vb[:, j] .= Va[:, i]
-      Rb[j]     = Ra[i]
-      Ib[j]     = Ia[i]
+      j = C[ci, k]
+      C[ci, k] -= 1
+
+      selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+      Rb[j] = Ra[i]
+      Ib[j] = Ia[i]
     end
   end
 end
