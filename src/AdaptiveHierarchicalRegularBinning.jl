@@ -1,6 +1,6 @@
 module AdaptiveHierarchicalRegularBinning
 
-import Base: length
+import Base: length, eltype
 using DocStringExtensions
 
 

@@ -24,6 +24,7 @@ CountSortDetails(rsd::RadixSortDetails)  = rsd.csd
 
 next(csd::CountSortDetails, lo, hi) = typeof(csd)(lo, hi, depth(csd)+1)
 
+eltype(csd::CountSortDetails) = typeof(csd.hi)
 
 low(csd::CountSortDetails)    = csd.lo
 high(csd::CountSortDetails)   = csd.hi
@@ -47,7 +48,7 @@ RadixSortDetails(bitlen, lo, hi; dims=1, par_th=DEFAULT_THRESHOLDS.PAR, seq_th=D
 
 next(rsd::RadixSortDetails, lo, hi) = typeof(rsd)(next(rsd.csd, lo, hi), rsd.par_th, rsd.seq_th, rsd.sml_th, rsd.dpt_th, rsd.pools)
 
-for fn in (:low, :high, :length, :depth, :bitlen, :leaddim, :bitmask)
+for fn in (:eltype, :low, :high, :length, :depth, :bitlen, :leaddim, :bitmask)
   @eval $fn(rsd::RadixSortDetails) = $fn(CountSortDetails(rsd))
 end
 
@@ -67,7 +68,7 @@ alloc!(rsd::RadixSortDetails, dims...) = @inbounds begin
 
   buffers = pool[len]
   if isempty(buffers)
-    push!(buffers, Vector{UInt}(undef, len))
+    push!(buffers, Vector{eltype(rsd)}(undef, len))
   end
 
   return reshape(pop!(buffers), dims...)

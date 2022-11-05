@@ -17,11 +17,6 @@ $(TYPEDSIGNATURES)
   - `rsd`: The `RadixSortDetails` for this recursion.
 """
 radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{UInt8}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
-
-  is_deep(rsd)  && return
-  is_small(rsd) && return
-
-  # TODO: Type correctness between C, lo and hi
   C = alloc!(rsd, Int(bitmask(rsd)+1))
 
   countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, CountSortDetails(rsd))
@@ -31,6 +26,8 @@ radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
     nlo = C[j]+1
     nhi = j != length(C) ? C[j+1] : high(rsd)
     nrsd = next(rsd, nlo, nhi)
+
+    (is_small(nrsd) || is_deep(nrsd)) && continue
 
     radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd)
   end
@@ -68,7 +65,7 @@ radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
 
     nrsd = next(rsd, nlo, nhi)
 
-    length(nrsd) <= 1 && continue
+    (is_small(nrsd) || is_deep(nrsd)) && continue
 
     if is_big(nrsd)
       Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
