@@ -1,6 +1,8 @@
 module AdaptiveHierarchicalRegularBinning
 
+import Base: length
 using DocStringExtensions
+
 
 include("utilities.jl")
 include("bit_interleave.jl")

@@ -42,9 +42,9 @@ countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::
     j = C[ci]
     C[ci] -= 1
 
-    selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+    # selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
     Rb[j] = Ra[i]
-    Ib[j] = Ia[i]
+    # Ib[j] = Ia[i]
   end
 end
 
@@ -102,9 +102,9 @@ countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::
       j = C[ci, k]
       C[ci, k] -= 1
 
-      selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+      # selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
       Rb[j] = Ra[i]
-      Ib[j] = Ia[i]
+      # Ib[j] = Ia[i]
     end
   end
 end
