@@ -15,7 +15,7 @@ struct RadixSortDetails{B, D}
   sml_th::UInt
   dpt_th::UInt
 
-  pools::Vector{Dict{Integer, Vector{Vector{UInt}}}}
+  pools::Vector{Dict{UInt, Vector{Vector{UInt}}}}
 end
 
 
