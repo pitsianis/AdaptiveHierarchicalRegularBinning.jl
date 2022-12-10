@@ -28,6 +28,7 @@ d = 3
       lo = UInt(1 + n÷4)
       hi = UInt(n÷2)
       csd = CountSortDetails(bitlen, lo, hi; dims=dims)
+      Rb .= Ra
       countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, csd)
 
       @test issorted( radixsel.(Ref(csd),  Rb[lo:hi]) )
@@ -46,6 +47,7 @@ d = 3
       lo = UInt(1 + n÷4)
       hi = UInt(n÷2)
       csd = CountSortDetails(bitlen, lo, hi; dims=dims)
+      Rb .= Ra
       countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, csd)
 
       @test issorted( radixsel.(Ref(csd),  Rb[lo:hi]) )
