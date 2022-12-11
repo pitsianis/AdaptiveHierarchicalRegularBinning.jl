@@ -154,11 +154,7 @@ Selects the corresponding radix.
 radixsel(csd::CountSortDetails, x) = (x >> (8*sizeof(x) - depth(csd)*bitlen(csd))) & bitmask(csd)
 
 
-@inline function Base.selectdim(A, csd::CountSortDetails, i)
-  I = ntuple(k->k==leaddim(csd) ? i : (:), Val(max(ndims(A), leaddim(csd))))
-  @boundscheck checkbounds(A, I...)
-  return @inbounds @view A[I...]
-end
+@inline Base.selectdim(A, csd::CountSortDetails, i) = staticselectdim(A, Val(leaddim(csd)), i)
 # !SECTION: CountSortDetails
 
 # SECTION: RadixSortDetails
