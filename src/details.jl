@@ -1,5 +1,17 @@
-const DEFAULT_THRESHOLDS = (PAR = 10_000, SEQ = 1_000, SML=100, DPT=typemax(UInt))
+const DEFAULT_THRESHOLDS = (PAR=10_000, SEQ=1_000, SML=100, DPT=typemax(UInt))
 
+"""
+$(TYPEDEF)
+
+Contains all of the details needed for the `countsort_xxx_impl!` algorithms.
+
+# Fields
+  - `B`: The length of the bit mask to use.
+  - `D`: The leading dimension.
+  - `lo`: Lower array bound.
+  - `hi`: Higher array bound.
+  - `l`: The level of recursion.
+"""
 struct CountSortDetails{B, D}
   lo::UInt
   hi::UInt
@@ -7,6 +19,24 @@ struct CountSortDetails{B, D}
   l::UInt
 end
 
+
+"""
+$(TYPEDEF)
+
+Contains all of the details needed for the `radixsort_xxx_xxx_impl!` algorithms.
+
+# Fields
+  - `B`: The length of the bit mask to use.
+  - `D`: The leading dimension.
+  - `csd`: The underlying `CountSortDetails` object.
+
+  - `par_th`: Threshold for parallel-to-parallel execution.
+  - `seq_th`: Threshold for parallel-to-sequential execution.
+  - `sml_th`: Threshold for skiping small arrays.
+  - `dpt_th`: recursion threshold.
+
+  - `pools`: The memory pool per thread.
+"""
 struct RadixSortDetails{B, D}
   csd::CountSortDetails{B, D}
 
@@ -19,33 +49,146 @@ struct RadixSortDetails{B, D}
 end
 
 
-CountSortDetails(bitlen, lo, hi; dims=1) = CountSortDetails{bitlen, dims}(lo, hi, 1)
-CountSortDetails(rsd::RadixSortDetails)  = rsd.csd
+# SECTION: CountSortDetails
+"""
+$(SIGNATURES)
 
+Constructs a new `CountSortDetails` object.
+
+# Arguments
+  - `bitlen`: The bit length of the bit mask used by the algorithm.
+  - `lo`: Lower array bound.
+  - `hi`: Higher array bound.
+
+# Keyword Arguments
+  - `dims`: The leading dimension.
+"""
+CountSortDetails(bitlen, lo, hi; dims=1) = CountSortDetails{bitlen, dims}(lo, hi, 1)
+
+"""
+$(SIGNATURES)
+
+Gets a `CountSortDetails` object from a `RadixSortDetails` object.
+"""
+CountSortDetails(rsd::RadixSortDetails) = rsd.csd
+
+"""
+$(SIGNATURES)
+
+Constructs a new `CountSortDetails` object with a deeper level of recursion.
+
+# Arguments
+  - `lo`: New lower array bound.
+  - `hi`: New higher array bound.
+"""
 next(csd::CountSortDetails, lo, hi) = typeof(csd)(lo, hi, depth(csd)+1)
 
+
+"""
+$(SIGNATURES)
+
+The index type of the struct.
+"""
 eltype(csd::CountSortDetails) = typeof(csd.hi)
 
-low(csd::CountSortDetails)    = csd.lo
-high(csd::CountSortDetails)   = csd.hi
+
+"""
+$(SIGNATURES)
+
+Gets the lower index of the object.
+"""
+low(csd::CountSortDetails) = csd.lo
+
+"""
+$(SIGNATURES)
+
+Gets the higher index of the object.
+"""
+high(csd::CountSortDetails) = csd.hi
+
+"""
+$(SIGNATURES)
+
+Gets the length of the object.
+"""
 length(csd::CountSortDetails) = high(csd)-low(csd)+1
-depth(csd::CountSortDetails)  = csd.l
 
-bitlen(::CountSortDetails{B})         where {B} = B
-leaddim(::CountSortDetails{<:Any,D})  where {D} = D
+"""
+$(SIGNATURES)
 
+Gets the level of recursion of the object.
+"""
+depth(csd::CountSortDetails) = csd.l
+
+
+"""
+$(SIGNATURES)
+
+Gets the bit length the object.
+"""
+bitlen(::CountSortDetails{B}) where {B} = B
+
+"""
+$(SIGNATURES)
+
+Gets the leading dimension the object.
+"""
+leaddim(::CountSortDetails{<:Any,D}) where {D} = D
+
+"""
+$(SIGNATURES)
+
+Gets the bit mask the object.
+"""
 bitmask(csd::CountSortDetails) = (one(UInt) << bitlen(csd)) - 1
+
+"""
+$(SIGNATURES)
+
+Selects the corresponding radix.
+
+# Arguments
+  - `csd`: The `CountSortDetails` object to base the selection on.
+  - `x`: The value from which the radix is computed.
+"""
 radixsel(csd::CountSortDetails, x) = (x >> (8*sizeof(x) - depth(csd)*bitlen(csd))) & bitmask(csd)
+
 
 @inline function Base.selectdim(A, csd::CountSortDetails, i)
   I = ntuple(k->k==leaddim(csd) ? i : (:), Val(max(ndims(A), leaddim(csd))))
   @boundscheck checkbounds(A, I...)
   return @inbounds @view A[I...]
 end
+# !SECTION: CountSortDetails
 
+# SECTION: RadixSortDetails
+"""
+$(SIGNATURES)
 
+Constructs a new `RadixSortDetails` object.
+
+# Arguments
+  - `bitlen`: The bit length of the bit mask used by the algorithm.
+  - `lo`: Lower array bound.
+  - `hi`: Higher array bound.
+
+# Keyword Arguments
+  - `par_th`: Threshold for parallel-to-parallel execution.
+  - `seq_th`: Threshold for parallel-to-sequential execution.
+  - `sml_th`: Threshold for skiping small arrays.
+  - `dpt_th`: recursion threshold.
+"""
 RadixSortDetails(bitlen, lo, hi; dims=1, par_th=DEFAULT_THRESHOLDS.PAR, seq_th=DEFAULT_THRESHOLDS.SEQ, sml_th=DEFAULT_THRESHOLDS.SML, dpt_th=DEFAULT_THRESHOLDS.DPT) = RadixSortDetails{bitlen, dims}(CountSortDetails(bitlen, lo, hi; dims=dims), par_th, seq_th, sml_th, dpt_th, [Dict() for _ in 1:Threads.nthreads()])
 
+"""
+$(SIGNATURES)
+
+Constructs a new `RadixSortDetails` object with a deeper level of recursion.
+
+# Arguments
+  - `lo`: New lower array bound.
+  - `hi`: New higher array bound.
+"""
 next(rsd::RadixSortDetails, lo, hi) = typeof(rsd)(next(rsd.csd, lo, hi), rsd.par_th, rsd.seq_th, rsd.sml_th, rsd.dpt_th, rsd.pools)
 
 for fn in (:eltype, :low, :high, :length, :depth, :bitlen, :leaddim, :bitmask)
@@ -59,6 +202,15 @@ is_small(rsd::RadixSortDetails) = length(rsd) <= rsd.sml_th
 is_deep(rsd::RadixSortDetails)  = depth(rsd)  >= rsd.dpt_th
 
 
+"""
+$(SIGNATURES)
+
+Allocates a new array or uses a preexisting one.
+
+# Arguments
+  - `rsd`: The `RadixSortDetails` object that owns the allocation.
+  - `dims`: The dimensions to allocate
+"""
 alloc!(rsd::RadixSortDetails, dims...) = @inbounds begin
   pool = rsd.pools[Threads.threadid()]
   len = prod(dims)
@@ -74,6 +226,16 @@ alloc!(rsd::RadixSortDetails, dims...) = @inbounds begin
   return reshape(pop!(buffers), dims...)
 end
 
+
+"""
+$(SIGNATURES)
+
+Marks an array as 'released' and available for future use.
+
+# Arguments
+  - `rsd`: The `RadixSortDetails` object that owns the array.
+  - `X`: The array.
+"""
 free!(rsd::RadixSortDetails, X::Array{UInt}) = @inbounds begin
   pool = rsd.pools[Threads.threadid()]
   dims = size(X)
@@ -88,3 +250,4 @@ free!(rsd::RadixSortDetails, X::Array{UInt}) = @inbounds begin
 
   return
 end
+# !SECTION: RadixSortDetails
