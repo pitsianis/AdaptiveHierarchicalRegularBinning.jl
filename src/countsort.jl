@@ -1,71 +1,105 @@
-
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Multithreaded count sort permutation. Overwrite vector `p` with the
-permutation that puts vector of values `v[p]` in non decreasing order.
+Sequential countsort.
 
- - `p`: preallocated output vector of integers to receive the permutation
- - `v`: input vector of integer values that determine order. The unique values
-        of `v` must be in the range `0:m` where `m << length(v)`
- - `C`: preallocated workspace of size at least `(m+1+8:np+1)`,
-        where `np` is the number of threads.
+# Remarks
+Inputs `Va`, `Ra`, `Ia` are not altered.
+
+# Arguments
+  - `Va`: The cloud of points.
+  - `Ra`: The morton transformation for each point of `Va`
+  - `Ia`: The current permutation of `Va`.
+
+  - `Vb`: A matrix to store the sorted version of `Va`.
+  - `Rb`: A vector to store the sorted version of `Ra`.
+  - `Ib`: A vector to store the resulting permutation.
+
+  - `C`: A vector acting as a working space for the countsort algorithm.
+
+  - `csd`: The `CountSortDetails` object used to configure the algorithm.
 """
-function
-pcountsortperm!(p::Vector{Int64},v::Vector{Int64},C::Matrix{Int64})
+countsort_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::CountSortDetails) where {TV<:AbstractArray, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+  lo = low(csd)
+  hi = high(csd)
 
-  n  = length(v)
-  np = Threads.nthreads()
+  to_index(x) = radixsel(csd, x) + 1
 
-  fill!( C, 0 )
-
-  b = Int64( ceil( n / np ) )
-
-  @inbounds @threading for k = 1:np
-    for i=(k - 1) * b + 1 : min(k*b,n)
-      x = v[i]
-      C[x, k+1] += 1
-    end
+  fill!(C, 0)
+  for i in lo:hi
+    C[to_index(Ra[i])] += 1
   end
 
-  cumsum!(C, C, dims=2)
-  C[2:end,1:end-1] .= C[2:end,1:end-1] .+ cumsum(C[1:end-1,end])
-
-  @inbounds @threading for k=1:np
-    for i=(k - 1) * b + 1 : min(k*b,n)
-      C[v[i],k] += 1
-      p[C[v[i],k]] = i
-    end
-  end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Sequential count sort permutation. Overwrite vector `p` with the
-permutation that puts vector of values `v[p]` in non decreasing order.
-
- - `p`: preallocated output vector of integers to receive the permutation
- - `v`: input vector of integer values that determine order. The unique values
-        of `v` must be in the range `0:m` where `m << length(v)`
- - `C`: preallocated workspace of size at least `m+1`
-"""
-function countsortperm!(p,v,C)
-
-  fill!( C, 0 )
-
-  n = length(v)
-
-  Coff = view( C, 2:length(C) )
-  @inbounds for i=1:n
-    Coff[v[i]] += 1
-  end
-
+  C[1] += lo - 1
   cumsum!(C, C)
 
-  @inbounds for i=1:n
-    C[v[i]] += 1
-    p[C[v[i]]] = i
+  for i in lo:hi
+    ci = to_index(Ra[i])
+
+    j = C[ci]
+    C[ci] -= 1
+
+    selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+    Rb[j] = Ra[i]
+    Ib[j] = Ia[i]
   end
 end
 
+
+"""
+$(SIGNATURES)
+
+Parallel countsort.
+
+# Remarks
+Inputs `Va`, `Ra`, `Ia` are not altered.
+
+# Arguments
+  - `Va`: The cloud of points.
+  - `Ra`: The morton transformation for each point of `Va`
+  - `Ia`: The current permutation of `Va`.
+
+  - `Vb`: A matrix to store the sorted version of `Va`.
+  - `Rb`: A vector to store the sorted version of `Ra`.
+  - `Ib`: A vector to store the resulting permutation.
+
+  - `C`: A matrix acting as a working space for the countsort algorithm.
+
+  - `csd`: The `CountSortDetails` object used to configure the algorithm.
+"""
+countsort_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, C::TC, csd::CountSortDetails) where {TV<:AbstractArray, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}, TC<:AbstractMatrix{<:Unsigned}} = @inbounds @views begin
+  lo = low(csd)
+  hi = high(csd)
+
+  n  = length(csd)
+  np = Threads.nthreads()
+  b  = cld(n, np)
+
+  to_index(x) = radixsel(csd, x) + 1
+  local_range(k) = (k-1)*b + lo : min(k*b + lo - 1, hi)
+
+  Threads.@threads for k=1:np
+    fill!(C[:, k], 0)
+    for i in local_range(k)
+      C[to_index(Ra[i]), k] += 1
+    end
+  end
+
+  C[1] += lo - 1
+  cumsum!(C, C, dims=2)
+  cumsum!(C[:, end], C[:, end])
+  C[2:end, 1:end-1] .+= C[1:end-1, end]
+
+  Threads.@threads for k=1:np
+    for i in local_range(k)
+      ci = to_index(Ra[i])
+
+      j = C[ci, k]
+      C[ci, k] -= 1
+
+      selectdim(Vb, csd, j) .= selectdim(Va, csd, i)
+      Rb[j] = Ra[i]
+      Ib[j] = Ia[i]
+    end
+  end
+end
