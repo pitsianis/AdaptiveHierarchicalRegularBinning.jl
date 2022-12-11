@@ -1,30 +1,35 @@
-# NOTE: After ping-pong sorting use P array to find the true result. `Ra[P .== 1] = Rb[P .== 1]`
+# NOTE: After ping-pong sorting use P array to find the true result. `Ra[P] .= Rb[P]`
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-  - `Va`: The matrix to sort.
-            Assuming `Va` is of size `(d, n)` then `d` is the number of dimensions and `n` is the number of elements.
-  - `Ra`: The representation vector of `Va`. Must be of length `n`.
-            Sorting will be executed based on this vector.
-  - `Ia`: The current permutation of `Va`. Must be of length `n`.
+Sequential-to-Sequential radixsort.
 
-  - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`.
-  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`.
-  - `Ib`: A vector to store the resulting permutation. Must be of length `n`.
+# Arguments
+  - `Va`: The cloud of points.
+  - `Ra`: The morton transformation for each point of `Va`
+  - `Ia`: The current permutation of `Va`.
 
-  - `P`: The ping-pong array.
+  - `Vb`: An auxiliary matrix to store the partially sorted version of `Va`.
+  - `Rb`: An auxiliary vector to store the partially sorted version of `Ra`.
+  - `Ib`: An auxiliary vector to store the resulting permutation.
 
-  - `rsd`: The `RadixSortDetails` for this recursion.
+  - `P`: A ping-pong matrix that denotes where the latest results are.
+
+  - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{UInt8}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
-  C = alloc!(rsd, Int(bitmask(rsd)+1))
+radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+  lo = low(rsd)
+  hi = high(rsd)
+
+  C = alloc!(rsd, Int(bitmask(rsd))+1)
 
   countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, CountSortDetails(rsd))
-  P[low(rsd):high(rsd)] .= depth(rsd)%2
+  P[lo:hi] .= !P[lo]
 
-  for j in 1:length(C)
+  nC = length(C)
+  for j in 1:nC
     nlo = C[j]+1
-    nhi = j != length(C) ? C[j+1] : high(rsd)
+    nhi = j != nC ? C[j+1] : hi
     nrsd = next(rsd, nlo, nhi)
 
     (is_small(nrsd) || is_deep(nrsd)) && continue
@@ -37,31 +42,35 @@ end
 
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-  - `Va`: The matrix to sort.
-            Assuming `Va` is of size `(d, n)` then `d` is the number of dimensions and `n` is the number of elements.
-  - `Ra`: The representation vector of `Va`. Must be of length `n`.
-            Sorting will be executed based on this vector.
-  - `Ia`: The current permutation of `Va`. Must be of length `n`.
+Parallel-to-Sequential radixsort.
 
-  - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`.
-  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`.
-  - `Ib`: A vector to store the resulting permutation. Must be of length `n`.
+# Arguments
+  - `Va`: The cloud of points.
+  - `Ra`: The morton transformation for each point of `Va`
+  - `Ia`: The current permutation of `Va`.
 
-  - `P`: The ping-pong array.
+  - `Vb`: An auxiliary matrix to store the partially sorted version of `Va`.
+  - `Rb`: An auxiliary vector to store the partially sorted version of `Ra`.
+  - `Ib`: An auxiliary vector to store the resulting permutation.
 
-  - `rsd`: The `RadixSortDetails` for this recursion.
+  - `P`: A ping-pong matrix that denotes where the latest results are.
+
+  - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{UInt8}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+  lo = low(rsd)
+  hi = high(rsd)
 
-  C = alloc!(rsd, Int(bitmask(rsd)+1))
+  C = alloc!(rsd, Int(bitmask(rsd))+1)
   countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, CountSortDetails(rsd))
-  P[low(rsd):high(rsd)] .= depth(rsd)%2
+  P[lo:hi] .= !P[lo]
 
-  @sync for j in 1:length(C)
+  nC = length(C)
+  @sync for j in 1:nC
     nlo = C[j]+1
-    nhi = j != length(C) ? C[j+1] : high(rsd)
+    nhi = j != nC ? C[j+1] : hi
 
     nrsd = next(rsd, nlo, nhi)
 
@@ -77,36 +86,41 @@ radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
   free!(rsd, C)
 end
 
+
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-  - `Va`: The matrix to sort.
-            Assuming `Va` is of size `(d, n)` then `d` is the number of dimensions and `n` is the number of elements.
-  - `Ra`: The representation vector of `Va`. Must be of length `n`.
-            Sorting will be executed based on this vector.
-  - `Ia`: The current permutation of `Va`. Must be of length `n`.
+Parallel-to-Parallel radixsort.
 
-  - `Vb`: A matrix to store the sorted version of `Va`. Must be of size `(d, n)`.
-  - `Rb`: A vector to store the sorted version of `Ra`. Must be of length `n`.
-  - `Ib`: A vector to store the resulting permutation. Must be of length `n`.
+# Arguments
+  - `Va`: The cloud of points.
+  - `Ra`: The morton transformation for each point of `Va`
+  - `Ia`: The current permutation of `Va`.
 
-  - `P`: The ping-pong array.
+  - `Vb`: An auxiliary matrix to store the partially sorted version of `Va`.
+  - `Rb`: An auxiliary vector to store the partially sorted version of `Ra`.
+  - `Ib`: An auxiliary vector to store the resulting permutation.
 
-  - `rsd`: The `RadixSortDetails` for this recursion.
+  - `P`: A ping-pong matrix that denotes where the latest results are.
+
+  - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{UInt8}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+  lo = low(rsd)
+  hi = high(rsd)
 
-  Cm = alloc!(rsd, Int(bitmask(rsd)+1), Threads.nthreads())
-  C  = alloc!(rsd, Int(bitmask(rsd)+1))
+  Cm = alloc!(rsd, Int(bitmask(rsd))+1, Threads.nthreads())
+  C  = alloc!(rsd, Int(bitmask(rsd))+1)
   countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, Cm, CountSortDetails(rsd))
   minimum!(reshape(C, :, 1), Cm)
   free!(rsd, Cm)
 
-  P[low(rsd):high(rsd)] .= depth(rsd)%2
+  P[lo:hi] .= !P[lo]
 
-  @sync for j in 1:length(C)
+  nC = length(C)
+  @sync for j in 1:nC
     nlo = C[j]+1
-    nhi = j != length(C) ? C[j+1] : high(rsd)
+    nhi = j != nC ? C[j+1] : hi
     nrsd = next(rsd, nlo, nhi)
 
     (is_small(nrsd) || is_deep(nrsd)) && continue
