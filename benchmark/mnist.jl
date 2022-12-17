@@ -18,7 +18,7 @@ Xp = Up * Diagonal(Sp) * (Vp)
 
 # %% Resample
 np = size(Xp, 1)
-n  = np*25
+n  = np*50
 I  = (rand(UInt, n) .% np) .+ 1
 Xr = Xp[I, :]
 
@@ -48,13 +48,13 @@ P = falses(n)
 
 rsd = AdaptiveHierarchicalRegularBinning.RadixSortDetails(nd, 1, n; dims=2, sml_th=1, dpt_th=l+1)
 
-# @benchmark(
-#   AdaptiveHierarchicalRegularBinning.radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd),
-#   setup=begin
-#     Va .= V
-#     Ra .= R
-#     Ia .= 1:length(R)
+@benchmark(
+  AdaptiveHierarchicalRegularBinning.radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd),
+  setup=begin
+    Va .= V
+    Ra .= R
+    Ia .= 1:length(R)
 
-#     P .= false
-#   end
-# )
+    P .= false
+  end
+)
