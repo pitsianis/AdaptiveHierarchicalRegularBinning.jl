@@ -2,8 +2,10 @@ using AdaptiveHierarchicalRegularBinning
 using Test
 
 const files = (
+  "bit_interleave",
   "spatial_encode",
   "countsort",
+  "radixsort",
 )
 
 @testset "AdaptiveHierarchicalRegularBinning.jl" begin

@@ -1,17 +1,14 @@
 module BitInterleaveTests
 # NOTE: Use SafeTestSets: https://github.com/YingboMa/SafeTestsets.jl
 
-using AdaptiveHierarchicalRegularBinning: bit_interleave, InterleaveMethod, Brute
-using InteractiveUtils
+using AdaptiveHierarchicalRegularBinning: bit_interleave, InterleaveMethod, Brute, Pdep
 using Test
 
 function bit_interleave_equivalence_test(n)
-    methods = subtypes(InterleaveMethod)
     ground_truth_method = Brute
-    filtered_methods = filter((x) -> x != ground_truth_method, methods)
 
     @testset "$(bit_interleave) equivalence" begin
-        @testset "$M" for M in filtered_methods
+        @testset "$M" for M in (Brute, Pdep)
             @testset "$T" for T in (UInt8, UInt16, UInt32, UInt64, UInt128)
                 W = rand(T, n)
 

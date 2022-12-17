@@ -1,4 +1,4 @@
-const DEFAULT_THRESHOLDS = (PAR=10_000, SEQ=1_000, SML=100, DPT=typemax(UInt))
+const DEFAULT_THRESHOLDS = (PAR=100_000, SEQ=10_000, SML=100, DPT=typemax(UInt))
 
 """
 $(TYPEDEF)
@@ -13,10 +13,10 @@ Contains all of the details needed for the `countsort_xxx_impl!` algorithms.
   - `l`: The level of recursion.
 """
 struct CountSortDetails{B, D}
-  lo::UInt
-  hi::UInt
+  lo::Int
+  hi::Int
 
-  l::UInt
+  l::Int
 end
 
 
@@ -34,18 +34,14 @@ Contains all of the details needed for the `radixsort_xxx_xxx_impl!` algorithms.
   - `seq_th`: Threshold for parallel-to-sequential execution.
   - `sml_th`: Threshold for skiping small arrays.
   - `dpt_th`: recursion threshold.
-
-  - `pools`: The memory pool per thread.
 """
 struct RadixSortDetails{B, D}
   csd::CountSortDetails{B, D}
 
-  par_th::UInt
-  seq_th::UInt
-  sml_th::UInt
-  dpt_th::UInt
-
-  pools::Vector{Dict{UInt, Vector{Vector{UInt}}}}
+  par_th::Int
+  seq_th::Int
+  sml_th::Int
+  dpt_th::Int
 end
 
 
@@ -174,7 +170,11 @@ Constructs a new `RadixSortDetails` object.
   - `sml_th`: Threshold for skiping small arrays.
   - `dpt_th`: recursion threshold.
 """
-RadixSortDetails(bitlen, lo, hi; dims=1, par_th=DEFAULT_THRESHOLDS.PAR, seq_th=DEFAULT_THRESHOLDS.SEQ, sml_th=DEFAULT_THRESHOLDS.SML, dpt_th=DEFAULT_THRESHOLDS.DPT) = RadixSortDetails{bitlen, dims}(CountSortDetails(bitlen, lo, hi; dims=dims), par_th, seq_th, sml_th, dpt_th, [Dict() for _ in 1:Threads.nthreads()])
+RadixSortDetails(bitlen, lo, hi; dims=1, par_th=DEFAULT_THRESHOLDS.PAR,
+                                         seq_th=DEFAULT_THRESHOLDS.SEQ,
+                                         sml_th=DEFAULT_THRESHOLDS.SML,
+                                         dpt_th=DEFAULT_THRESHOLDS.DPT) =
+  RadixSortDetails{bitlen, dims}(CountSortDetails(bitlen, lo, hi; dims=dims), par_th, seq_th, sml_th, dpt_th)
 
 """
 $(SIGNATURES)
@@ -185,7 +185,7 @@ Constructs a new `RadixSortDetails` object with a deeper level of recursion.
   - `lo`: New lower array bound.
   - `hi`: New higher array bound.
 """
-next(rsd::RadixSortDetails, lo, hi) = typeof(rsd)(next(rsd.csd, lo, hi), rsd.par_th, rsd.seq_th, rsd.sml_th, rsd.dpt_th, rsd.pools)
+next(rsd::RadixSortDetails, lo, hi) = typeof(rsd)(next(rsd.csd, lo, hi), rsd.par_th, rsd.seq_th, rsd.sml_th, rsd.dpt_th)
 
 for fn in (:eltype, :low, :high, :length, :depth, :bitlen, :leaddim, :bitmask)
   @eval $fn(rsd::RadixSortDetails) = $fn(CountSortDetails(rsd))
@@ -196,54 +196,4 @@ is_huge(rsd::RadixSortDetails)  = length(rsd) >= rsd.par_th
 is_big(rsd::RadixSortDetails)   = length(rsd) >= rsd.seq_th
 is_small(rsd::RadixSortDetails) = length(rsd) <= rsd.sml_th
 is_deep(rsd::RadixSortDetails)  = depth(rsd)  >= rsd.dpt_th
-
-
-"""
-$(SIGNATURES)
-
-Allocates a new array or uses a preexisting one.
-
-# Arguments
-  - `rsd`: The `RadixSortDetails` object that owns the allocation.
-  - `dims`: The dimensions to allocate
-"""
-alloc!(rsd::RadixSortDetails, dims...) = @inbounds begin
-  pool = rsd.pools[Threads.threadid()]
-  len = prod(dims)
-  if !haskey(pool, len)
-    pool[len] = []
-  end
-
-  buffers = pool[len]
-  if isempty(buffers)
-    push!(buffers, Vector{eltype(rsd)}(undef, len))
-  end
-
-  return reshape(pop!(buffers), dims...)
-end
-
-
-"""
-$(SIGNATURES)
-
-Marks an array as 'released' and available for future use.
-
-# Arguments
-  - `rsd`: The `RadixSortDetails` object that owns the array.
-  - `X`: The array.
-"""
-free!(rsd::RadixSortDetails, X::Array{UInt}) = @inbounds begin
-  pool = rsd.pools[Threads.threadid()]
-  dims = size(X)
-  len = prod(dims)
-
-  if !haskey(pool, len)
-    pool[len] = []
-  end
-
-  buffers = pool[len]
-  push!(buffers, reshape(X, :))
-
-  return
-end
 # !SECTION: RadixSortDetails
