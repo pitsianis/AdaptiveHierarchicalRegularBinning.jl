@@ -49,12 +49,13 @@ P = falses(n)
 rsd = AdaptiveHierarchicalRegularBinning.RadixSortDetails(nd, 1, n; dims=2, sml_th=1, dpt_th=l+1)
 
 @benchmark(
-  AdaptiveHierarchicalRegularBinning.radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd),
+  AdaptiveHierarchicalRegularBinning.radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, allocator),
   setup=begin
     Va .= V
     Ra .= R
     Ia .= 1:length(R)
 
     P .= false
+    allocator = AdaptiveHierarchicalRegularBinning.Allocator(eltype(Ia))
   end
 )
