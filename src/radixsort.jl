@@ -17,12 +17,11 @@ Sequential-to-Sequential radixsort.
 
   - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails, allocator::Allocator{TA}) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TA<:Unsigned, TI<:AbstractVector{TA}} = @inbounds @views begin
   lo = low(rsd)
   hi = high(rsd)
 
-  C = alloc!(rsd, Int(bitmask(rsd))+1)
-
+  C = alloc!(allocator, Int(bitmask(rsd))+1)
   countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, CountSortDetails(rsd))
   P[lo:hi] .= !P[lo]
 
@@ -34,10 +33,10 @@ radixsort_seq_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
 
     (is_small(nrsd) || is_deep(nrsd)) && continue
 
-    radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd)
+    radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
   end
 
-  free!(rsd, C)
+  free!(allocator, C)
 end
 
 #TODO: FIX bug with Threads.@spawn
@@ -59,11 +58,11 @@ Parallel-to-Sequential radixsort.
 
   - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails, allocator::Allocator{TA}) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TA<:Unsigned, TI<:AbstractVector{TA}} = @inbounds @views begin
   lo = low(rsd)
   hi = high(rsd)
 
-  C = alloc!(rsd, Int(bitmask(rsd))+1)
+  C = alloc!(allocator, Int(bitmask(rsd))+1)
   countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, CountSortDetails(rsd))
   P[lo:hi] .= !P[lo]
 
@@ -71,19 +70,18 @@ radixsort_par_seq_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
   @sync for j in 1:nC
     nlo = C[j]+1
     nhi = j != nC ? C[j+1] : hi
-
     nrsd = next(rsd, nlo, nhi)
 
     (is_small(nrsd) || is_deep(nrsd)) && continue
 
     if is_big(nrsd)
-      Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
+      Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
     else
-      Threads.@spawn radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
+      Threads.@spawn radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
     end
   end
 
-  free!(rsd, C)
+  free!(allocator, C)
 end
 
 
@@ -105,16 +103,15 @@ Parallel-to-Parallel radixsort.
 
   - `rsd`: The `RadixSortDetails` object used to configure the algorithm.
 """
-radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TI<:AbstractVector{<:Unsigned}} = @inbounds @views begin
+radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::AbstractVector{Bool}, rsd::RadixSortDetails, allocator::Allocator{TA}) where {TV<:AbstractMatrix, TR<:AbstractVector{<:Unsigned}, TA<:Unsigned, TI<:AbstractVector{TA}} = @inbounds @views begin
   lo = low(rsd)
   hi = high(rsd)
 
-  Cm = alloc!(rsd, Int(bitmask(rsd))+1, Threads.nthreads())
-  C  = alloc!(rsd, Int(bitmask(rsd))+1)
+  Cm = alloc!(allocator, Int(bitmask(rsd))+1, Threads.nthreads())
+  C  = alloc!(allocator, Int(bitmask(rsd))+1)
   countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, Cm, CountSortDetails(rsd))
   minimum!(reshape(C, :, 1), Cm)
-  free!(rsd, Cm)
-
+  free!(allocator, Cm)
   P[lo:hi] .= !P[lo]
 
   nC = length(C)
@@ -126,15 +123,13 @@ radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
     (is_small(nrsd) || is_deep(nrsd)) && continue
 
     if is_huge(nrsd)
-      Threads.@spawn radixsort_par_par_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
+      Threads.@spawn radixsort_par_par_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
     elseif is_big(nrsd)
-      Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
+      Threads.@spawn radixsort_par_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
     else
-      Threads.@spawn radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, $nrsd)
+      Threads.@spawn radixsort_seq_seq_impl!(Vb, Rb, Ib, Va, Ra, Ia, P, nrsd, allocator)
     end
   end
 
-  free!(rsd, C)
+  free!(allocator, C)
 end
-
-
