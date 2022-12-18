@@ -44,7 +44,7 @@ Vb = similar(V)
 Rb = similar(R)
 Ib = Vector{UInt}(undef, n)
 
-P = falses(n)
+P = zeros(Bool, n)
 
 rsd = AdaptiveHierarchicalRegularBinning.RadixSortDetails(nd, 1, n; dims=2, sml_th=1, dpt_th=l+1)
 
