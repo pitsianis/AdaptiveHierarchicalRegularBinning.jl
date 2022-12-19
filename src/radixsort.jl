@@ -133,3 +133,33 @@ radixsort_par_par_impl!(Va::TV, Ra::TR, Ia::TI, Vb::TV, Rb::TR, Ib::TI, P::Abstr
 
   free!(allocator, C)
 end
+
+
+# Disable `BitVector`
+radixsort_par_seq_impl!(Va::TV,
+                        Ra::TR,
+                        Ia::TI,
+                        Vb::TV,
+                        Rb::TR,
+                        Ib::TI,
+                        P::BitVector,
+                        rsd::RadixSortDetails,
+                        allocator::Allocator{TA}) where { TV<:AbstractMatrix,
+                                                          TR<:AbstractVector{<:Unsigned},
+                                                          TA<:Unsigned,
+                                                          TI<:AbstractVector{TA}} =
+  throw(ArgumentError("RadixSort parallel implementation does not support BitVector"))
+
+radixsort_par_par_impl!(Va::TV,
+                        Ra::TR,
+                        Ia::TI,
+                        Vb::TV,
+                        Rb::TR,
+                        Ib::TI,
+                        P::BitVector,
+                        rsd::RadixSortDetails,
+                        allocator::Allocator{TA}) where { TV<:AbstractMatrix,
+                                                          TR<:AbstractVector{<:Unsigned},
+                                                          TA<:Unsigned,
+                                                          TI<:AbstractVector{TA}} =
+  throw(ArgumentError("RadixSort parallel implementation does not support BitVector"))

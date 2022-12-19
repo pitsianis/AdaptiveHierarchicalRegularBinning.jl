@@ -21,7 +21,7 @@ rsd = AdaptiveHierarchicalRegularBinning.RadixSortDetails(d, 1, n; dims=2, sml_t
     Rb = similar(Ra)
     Ib = similar(Ia)
 
-    P = falses(n)
+    P = zeros(Bool, n)
     allocator = AdaptiveHierarchicalRegularBinning.Allocator(eltype(Ia))
   end
 )

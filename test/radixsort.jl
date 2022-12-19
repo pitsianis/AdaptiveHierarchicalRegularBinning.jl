@@ -21,7 +21,7 @@ using Test
     Rb = similar(R)
     Ib = similar(I)
 
-    P = falses(n)
+    P = zeros(Bool, n)
 
     rsd = RadixSortDetails(d, 1, n; dims=2, sml_th=1, dpt_th=l+1)
 
