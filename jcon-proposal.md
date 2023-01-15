@@ -41,11 +41,13 @@ Empty bins, that is, nodes that do not contain any points, are not stored or ref
 
 - Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. & Isbell, C.. (2013). Tree-Independent Dual-Tree Algorithms. <i>Proceedings of the 30th International Conference on Machine Learning</i>, in <i>Proceedings of Machine Learning Research</i> 28(3):1435-1443 Available from https://proceedings.mlr.press/v28/curtin13.html.
 
+- Carrier, J., Greengard, L., & Rokhlin, V. (1988). A Fast Adaptive Multipole Algorithm for Particle Simulations. In SIAM Journal on Scientific and Statistical Computing (Vol. 9, Issue 4, pp. 669–686). Society for Industrial & Applied Mathematics (SIAM). https://doi.org/10.1137/0909044
+
+- Yokota, R. (2013). An FMM Based on Dual Tree Traversal for Many-Core Architectures. In Journal of Algorithms &amp; Computational Technology (Vol. 7, Issue 3, pp. 301–324). SAGE Publications. https://doi.org/10.1260/1748-3018.7.3.301
+
+- Curtin, R.R. (2015). Faster Dual-Tree Traversal for Nearest Neighbor Search. In: Amato, G., Connor, R., Falchi, F., Gennaro, C. (eds) Similarity Search and Applications. SISAP 2015. Lecture Notes in Computer Science(), vol 9371. Springer, Cham. https://doi.org/10.1007/978-3-319-25087-8_7
+
 - Greengard, L. (1990). The numerical solution of the n‐body problem. Computers in physics, 4(2), 142-152.
-
-- Erdelyi, B. (2013). The fast multipole method for N-body problems. In AIP Conference Proceedings. ADVANCED ACCELERATOR CONCEPTS: 15th Advanced Accelerator Concepts Workshop. AIP. https://doi.org/10.1063/1.4773727
-
-- Peterson, L. E. (2009). K-nearest neighbor. Scholarpedia, 4(2), 1883.
 
 - Cho, M., Brand, D., Bordawekar, R., Finkler, U., Kulandaisamy, V., & Puri, R. (2015). PARADIS: An efficient parallel algorithm for in-place radix sort. Proceedings of the VLDB Endowment, 8(12), 1518-1529.
 
