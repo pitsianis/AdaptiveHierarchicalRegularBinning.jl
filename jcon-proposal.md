@@ -47,6 +47,8 @@ Empty bins, that is, nodes that do not contain any points, are not stored or ref
 
 - Curtin, R.R. (2015). Faster Dual-Tree Traversal for Nearest Neighbor Search. In: Amato, G., Connor, R., Falchi, F., Gennaro, C. (eds) Similarity Search and Applications. SISAP 2015. Lecture Notes in Computer Science(), vol 9371. Springer, Cham. https://doi.org/10.1007/978-3-319-25087-8_7
 
+- Greengard, L. (1990). The numerical solution of the n‐body problem. Computers in physics, 4(2), 142-152.
+
 - Cho, M., Brand, D., Bordawekar, R., Finkler, U., Kulandaisamy, V., & Puri, R. (2015). PARADIS: An efficient parallel algorithm for in-place radix sort. Proceedings of the VLDB Endowment, 8(12), 1518-1529.
 
 - Zagha, M., & Blelloch, G. E. (1991, August). Radix sort for vector multiprocessors. In Proceedings of the 1991 ACM/IEEE conference on Supercomputing (pp. 712-721).
