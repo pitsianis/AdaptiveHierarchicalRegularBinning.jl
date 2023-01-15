@@ -37,3 +37,15 @@ The nature of the Morton curve lends itself to parallelization schemes. As state
 
 #### Sparse Tree
 Assuming the depth of `T` is `L` and the tree is dense, then the tree is composed of `L` levels with `2^d` child nodes per node leading to a total of `(2^d)^L` nodes. This memory requirement is impractical for larger values of `d` and `L`. One way to reduce this memory requirement is for the `T` tree to be sparse. In a sparse tree, nodes that do not contain any points are not stored in memory, since we would never need to operate on such a node. A sparse tree has the same space complexity of `O((2^d)^L)` as a dense tree would, but in real-world applications with real-world data, the actual memory requirement is significantly less since most of the lower-level nodes would be empty and thus not stored.
+
+
+### References
+- Sun, X., & Pitsianis, N. P. (2001). A Matrix Version of the Fast Multipole Method. In SIAM Review (Vol. 43, Issue 2, pp. 289–300). Society for Industrial & Applied Mathematics (SIAM). https://doi.org/10.1137/s0036144500370835
+
+- Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. & Isbell, C.. (2013). Tree-Independent Dual-Tree Algorithms. <i>Proceedings of the 30th International Conference on Machine Learning</i>, in <i>Proceedings of Machine Learning Research</i> 28(3):1435-1443 Available from https://proceedings.mlr.press/v28/curtin13.html.
+
+- Cho, M., Brand, D., Bordawekar, R., Finkler, U., Kulandaisamy, V., & Puri, R. (2015). PARADIS: An efficient parallel algorithm for in-place radix sort. Proceedings of the VLDB Endowment, 8(12), 1518-1529.
+
+- Zagha, M., & Blelloch, G. E. (1991, August). Radix sort for vector multiprocessors. In Proceedings of the 1991 ACM/IEEE conference on Supercomputing (pp. 712-721).
+
+- Morton, G. M. (1966). A computer oriented geodetic data base and a new technique in file sequencing.
