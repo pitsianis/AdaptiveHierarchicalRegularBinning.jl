@@ -1,12 +1,12 @@
 # JuliaCon 2023 Proposal
 
 ## Abstract
-`AdaptiveHierarchicalRegularBinning.jl` computes a hierarchical space-partitioning tree for a given set of points of arbitrary dimensions, that divides the space and stores the reordered points offering efficient access. Space-partitioning data structures are vital for algorithms that exploit spatial distance to reduce computational complexity, see for example the Fast Multipole Method, and algorithms finding nearest neighbors and their applications.  
+`AdaptiveHierarchicalRegularBinning.jl` computes a hierarchical space-partitioning tree for a given set of points of arbitrary dimensions, that divides the space and stores the reordered points offering efficient access. Space-partitioning data structures are vital for algorithms that exploit spatial distance to reduce computational complexity, see for example the Fast Multipole Method, and algorithms finding nearest neighbors and their applications.
 
 
 ## Description
 ### Model
-Assuming a set of `n` points `V` in a `d`-dimensional space, we partition the space into regular hierarchical bins. The resulting data structure is a sparse tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`. 
+Assuming a set of `n` points `V` in a `d`-dimensional space, we partition the space into regular hierarchical bins. The resulting data structure is a sparse tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`.
 
 #### Normalization
 The given set of points `V` is mapped into a `d`-dimensional unit hypercube `Vn` via an affine transformation that scales and translates `V`.
@@ -38,6 +38,12 @@ Empty bins, that is, nodes that do not contain any points, are not stored or ref
 - Sun, X., & Pitsianis, N. P. (2001). A Matrix Version of the Fast Multipole Method. In SIAM Review (Vol. 43, Issue 2, pp. 289–300). Society for Industrial & Applied Mathematics (SIAM). https://doi.org/10.1137/s0036144500370835
 
 - Curtin, R., March, W., Ram, P., Anderson, D., Gray, A. & Isbell, C.. (2013). Tree-Independent Dual-Tree Algorithms. <i>Proceedings of the 30th International Conference on Machine Learning</i>, in <i>Proceedings of Machine Learning Research</i> 28(3):1435-1443 Available from https://proceedings.mlr.press/v28/curtin13.html.
+
+- Greengard, L. (1990). The numerical solution of the n‐body problem. Computers in physics, 4(2), 142-152.
+
+- Erdelyi, B. (2013). The fast multipole method for N-body problems. In AIP Conference Proceedings. ADVANCED ACCELERATOR CONCEPTS: 15th Advanced Accelerator Concepts Workshop. AIP. https://doi.org/10.1063/1.4773727
+
+- Peterson, L. E. (2009). K-nearest neighbor. Scholarpedia, 4(2), 1883.
 
 - Cho, M., Brand, D., Bordawekar, R., Finkler, U., Kulandaisamy, V., & Puri, R. (2015). PARADIS: An efficient parallel algorithm for in-place radix sort. Proceedings of the VLDB Endowment, 8(12), 1518-1529.
 
