@@ -15,7 +15,7 @@ The given set of points `V` is mapped into a `d`-dimensional unit hypercube via 
 We split each dimension of the unit hypercube in half and recursively continue splitting each resulting hypercube in the same manner. Each partition is called a bin. The subdivision stops at a maximum depth `L` or when a bin contains `k` or fewer points. The recursive splitting process is recorded as a hierarchical tree data structure.
 
 #### 1D Encoding
-We use Morton encoding to map the `d`-dimensional set `Vn` to a one-dimensional space-filling curve. Each point in `Vn` is assigned an index in the reduced space resulting in `R`. Elements of `R` are bit-fields, each one consisting of `L` groups of `d` bits. These groups describe the position of the point in the corresponding level of the tree `T`. Points described by morton indices with equal Most Signifficant Digits belong in the same bin. Thus, sorting `R` results in `Rs` which defines the sparse tree.
+We use Morton encoding to map the `d`-dimensional set `Vn` to a one-dimensional space-filling curve. Each point in `Vn` is assigned an index in the reduced space resulting in `R`. Elements of `R` are bit-fields, each one consisting of `L` groups of `d` bits. These groups describe the position of the point in the corresponding level of the tree `T`. Points described by morton indices with equal most signifficant digits belong in the same bin. Thus, sorting `R` results in `Rs` which defines the sparse tree.
 
 ### Implementation
 Cache-locality and parallel programming are some of the techniques we used, to make our implementation performant.
@@ -23,14 +23,14 @@ Cache-locality and parallel programming are some of the techniques we used, to m
 #### Cache locality
 Cache locality offers fast memory access that greatly improves the performance of our algorithm.
 
-- The hyperspace `V`, and by extension both `Vn`, is defined as a `Matrix` of size `(d, n)`. The leading dimension describes the number of dimensions in the hyperspace resulting in an access pattern that is more friendly to the cache since all points of `V` have their corresponding coordinates densely packed in memory.
+- The set of points `V`, and by extension `Vn`, is defined as a `Matrix` of size `(d, n)`. The leading dimension describes the number of dimensions in the hyperspace resulting in an access pattern that is more friendly to the cache since all points of `V` have their corresponding coordinates densely packed in memory.
 
-- Sorting `R` and `Vn` has several benefits, one of which is the memory access pattern that it offers. Since we only access `V` through the `T` tree, we only access points that are in the same bin. `Rs` describes a bin of `T` with a contiguous block of memory, making operations on bins cache-friendly.
+- Sorting `R` and `Vn` offers a memory layout that is cache-friendly. Since we access `V` through the `T` tree, we only access points that are in the same bin. `Rs` describes a bin of `T` with a contiguous block of memory, thus preserving cache-locality.
 
 - `T` is not a linked-tree. `T` is a tree stored densely in memory as a `Vector{Node}`. Each `Node` of `T` is aware of their children and parent using their indices in this dense `Vector{Node}`.
 
 #### Parallel Partial Sorting
-The  Morton curve bit-field denotes the tree node of each point. The partial sorting using the Most Significant Digit (MSD) radix-sort, places the points to the corresponding bins. Points that fall within the same leaf node do not get sorted. The radix-sort runs in parallel: the partition of digits is done with a parallel count-sort, and then each digit subset is processed independently in parallel.
+The Morton curve bit-field denotes the tree node of each point. The partial sorting using the Most Significant Digit (MSD) radix-sort, places the points to the corresponding bins. Points that fall within the same leaf node do not get sorted. The radix-sort runs in parallel: the partition of digits is done with a parallel count-sort, and then each digit subset is processed independently in parallel.
 
 #### Adaptive Tree
 Empty bins, that is, nodes that do not contain any points, are not stored or referenced explicitly.
