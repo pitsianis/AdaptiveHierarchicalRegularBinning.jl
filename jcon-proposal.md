@@ -1,18 +1,18 @@
 # JuliaCon 2023 Proposal
 
 ## Abstract
-Space-partitioning data structures are a vital part of the HPC ecosystem. They trade off space complexity and a small runtime overhead for an overall runtime complexity reduction, which can greatly reduce the amount of time needed for a computation. Given a set of points of arbitrary dimensions,`AdaptiveHierarchicalRegularBinning.jl` computes a hierarchical space-partitioning tree that divides the space and stores the reordered points offering efficient access.
+`AdaptiveHierarchicalRegularBinning.jl` computes a hierarchical space-partitioning tree for a given set of points of arbitrary dimensions, that divides the space and stores the reordered points offering efficient access. Space-partitioning data structures are vital for algorithms that exploit spatial distance to reduce computational complexity, see for example the Fast Multipole Method, and algorithms finding nearest neighbors and their applications.  
 
 
 ## Description
 ### Model
-Assuming a set of `n` points `V` in a `d`-dimensional space, we partition the space into regular hierarchical bins. The resulting data structure is a sparse tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`. Empty bins are not stored or pointed to.
+Assuming a set of `n` points `V` in a `d`-dimensional space, we partition the space into regular hierarchical bins. The resulting data structure is a sparse tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`. 
 
 #### Normalization
 The given set of points `V` is mapped into a `d`-dimensional unit hypercube `Vn` via an affine transformation that scales and translates `V`.
 
 #### Binning
-We split each dimension of the unit hypercube `Vn` in half and recursively continue splitting each resulting hypercube in the same manner. Each partition is called a bin. The subdivision stops at a maximum depth `L` or when a bin contains `k` or fewer points. This recursive splitting process is recorded as a hierarchical tree data structure.
+We split each dimension of the unit hypercube `Vn` in half and recursively continue splitting each resulting hypercube in the same manner. Each partition is called a bin. The subdivision stops at a maximum depth `L` or when a bin contains `k` or fewer points. The recursive splitting process is recorded as a hierarchical tree data structure.
 
 ##### 1D Encoding
 The map of the `d`-dimensional point set `Vn` to a `d`-dimensional unit hypercube corresponds to a one-dimensional Morton space-filling curve `R`. Each element in `R` is a bit-field consisting of `L` groups of `d` bits. Each group describes the position of the point in the corresponding level of the tree `T`. Sorting of the point codes onto `R`, results to the order of the points in the space tree.
@@ -31,7 +31,7 @@ Cache locality offers fast memory access that greatly improves the performance o
 The  Morton curve bit-field denotes the tree node of each point. The partial sorting using the Most Significant Digit (MSD) radix-sort, places the points to the corresponding bins. Points that fall within the same bin do not get sorted. The radix sort runs in parallel: the partition of digits is done with a parallel count sort, and then each digit subset is processed independently in parallel.
 
 #### Adaptive Tree
-Tree nodes that do not contain any points are not stored. 
+Empty bins, that is, nodes that do not contain any points, are not stored or referenced explicitly.
 
 
 ### References
