@@ -1,27 +1,22 @@
 # JuliaCon 2023 Proposal
 
 ## Abstract
-Space-partitioning data structures are a vital part of the HPC ecosystem. They trade off space complexity and a small runtime overhead for an overall runtime complexity reduction, which can greatly reduce the amount of time needed for a computation. `AdaptiveHierarchicalRegularBinning.jl` offers a hierarchical space-partitioning tree that divides a space of arbitrary dimensions.
+Space-partitioning data structures are a vital part of the HPC ecosystem. They trade off space complexity and a small runtime overhead for an overall runtime complexity reduction, which can greatly reduce the amount of time needed for a computation. Given a set of points of arbitrary dimensions,`AdaptiveHierarchicalRegularBinning.jl` computes a hierarchical space-partitioning tree that divides the space and stores the reordered points offering efficient access.
 
 
 ## Description
 ### Model
-Assuming a set of `n` points `V` that defines a `d`-dimensional space, we offer the means to segregate that space into regular hierarchical bins. The resulting data structure is a hierarchical tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`.
+Assuming a set of `n` points `V` in a `d`-dimensional space, we partition the space into regular hierarchical bins. The resulting data structure is a sparse tree `T` with, at most, `2^d` child nodes per node and a maximum depth of `L`. Empty bins are not stored or pointed to.
 
 #### Normalization
-We confine the given set of points `V` into a `d`-dimensional unit hypercube `Vn` via an affine transformation that scales and translates `V`.
+The given set of points `V` is mapped into a `d`-dimensional unit hypercube `Vn` via an affine transformation that scales and translates `V`.
 
 #### Binning
-We split the unit hypercube `Vn` in half for each dimension and recursively continue splitting each resulting hypercube in the same manner. Each hypercube is called a bin. The recursion process stops at a maximum depth of `L` or when a hypercube contains `k` or fewer points. This recursive splitting process eventually creates the hierarchical tree structure.
+We split each dimension of the unit hypercube `Vn` in half and recursively continue splitting each resulting hypercube in the same manner. Each partition is called a bin. The subdivision stops at a maximum depth `L` or when a bin contains `k` or fewer points. This recursive splitting process is recorded as a hierarchical tree data structure.
 
 ##### 1D Encoding
-We use Morton encoding to map the `d`-dimensional set `Vn` to a one-dimensional space-filling curve `R`. Since a Morton curve is well-defined in a unit hypercube, we use the index of each point in the curve instead of the actual position in the reduced space. Each element in `R` is a bit-field divided into `L` groups of `d` bits, and each group describes the position of the corresponding point in the corresponding level of the tree `T`. Sorting `R` results in `Rs`, which is the initial state of the `T` tree. All elements of `Rs` that reside in the same node of `T` define a coherent block of the `Rs` array. These blocks are mutually exclusive from one another if the corresponding nodes are at the same level of the `T` tree. We, also, define `Vns` which is the permuted version of `Vn` that complies with `Rs`.
+The map of the `d`-dimensional point set `Vn` to a `d`-dimensional unit hypercube corresponds to a one-dimensional Morton space-filling curve `R`. Each element in `R` is a bit-field consisting of `L` groups of `d` bits. Each group describes the position of the point in the corresponding level of the tree `T`. Sorting of the point codes onto `R`, results to the order of the points in the space tree.
 
-### Implementation
-We took great care in implementing a performant yet generalized code that applies many of `Julia`'s best practices. Cache-locality, parallel programming, specialized functions, and minimizing allocations are some of the tools and techniques we used, to improve the runtime of the implementation.
-
-#### Specialization and Generalization
-Performance critical functions specialize over several parameters in order for the `Julia` compiler to produce performant code. The user is free to use a plethora of input types and leading dimensions for their data that comply with certain abstract types. This generalization comes at a probable runtime cost since not all data types and leading dimensions are as performant. We propose the most optimal input types for most cases.
 
 #### Cache locality
 Cache locality offers fast memory access that greatly improves the performance of our algorithm.
@@ -30,13 +25,13 @@ Cache locality offers fast memory access that greatly improves the performance o
 
 - Sorting `R` and `Vn` has several benefits, one of which is the memory access pattern that it offers. Since we only access `V` through the `T` tree, we only access points that are in the same node. `Rs`, and by extension `Vns`, describes a node of `T` with a contiguous block of memory, making operations on nodes cache-friendly.
 
-- `T` is not a linked-tree. `T` is a tree stored densely in memory as a `Vecor{Node}`. Each `Node` of `T` is aware of their children and parent using their indices in this dense `Vector{Node}`.
+- `T` is not a linked-tree. `T` is a tree stored densely in memory as a `Vector{Node}`. Each `Node` of `T` is aware of their children and parent using their indices in this dense `Vector{Node}`.
 
-#### Parallel Sorting
-The nature of the Morton curve lends itself to parallelization schemes. As stated in previous sections each element in the `R` vector is an index in the Morton curve. This bit-field can be further analyzed since it contains information about the node location of the corresponding point. A Morton curve index can be divided into `L` groups of `d` bits, each group describes the node location on the appropriate level. This property can be exploited using an MSD radix-sort, which can be parallelized. In each recursion the sub-arrays to be sorted are densely packed in memory and mutually exclusive from one another, eliminating problems like cache locality, data races and data dependencies.
+#### Parallel Partial Sorting
+The  Morton curve bit-field denotes the tree node of each point. The partial sorting using the Most Significant Digit (MSD) radix-sort, places the points to the corresponding bins. Points that fall within the same bin do not get sorted. The radix sort runs in parallel: the partition of digits is done with a parallel count sort, and then each digit subset is processed independently in parallel.
 
-#### Sparse Tree
-Assuming the depth of `T` is `L` and the tree is dense, then the tree is composed of `L` levels with `2^d` child nodes per node leading to a total of `(2^d)^L` nodes. This memory requirement is impractical for larger values of `d` and `L`. One way to reduce this memory requirement is for the `T` tree to be sparse. In a sparse tree, nodes that do not contain any points are not stored in memory, since we would never need to operate on such a node. A sparse tree has the same space complexity of `O((2^d)^L)` as a dense tree would, but in real-world applications with real-world data, the actual memory requirement is significantly less since most of the lower-level nodes would be empty and thus not stored.
+#### Adaptive Tree
+Tree nodes that do not contain any points are not stored. 
 
 
 ### References
