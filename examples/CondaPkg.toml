@@ -1,0 +1,11 @@
+[deps]
+scanpy = ""
+
+    [deps.leidenalg]
+    channel = "conda-forge"
+
+    [deps.numba]
+    channel = "numba"
+
+    [deps.llvmlite]
+    channel = "numba"
