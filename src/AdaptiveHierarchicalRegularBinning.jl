@@ -11,5 +11,6 @@ include("spatial_encode.jl")
 include("details.jl")
 include("countsort.jl")
 include("radixsort.jl")
+include("tree.jl")
 
 end

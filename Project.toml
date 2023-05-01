@@ -4,6 +4,7 @@ authors = ["Nikolaos Pitsianis <nikos.pitsianis@eng.auth.gr> and contributors"]
 version = "0.1.0"
 
 [deps]
+AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 BitOperations = "e1e0eea2-bc69-5bf6-8574-13634873a17c"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 

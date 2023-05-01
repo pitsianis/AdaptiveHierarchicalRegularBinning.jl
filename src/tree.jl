@@ -1,80 +1,178 @@
 using AbstractTrees
 
-struct Tree
-  data_vec
-  lo
-  hi
-  tree_vec
-  idx
-  children
-  depth
+#SECTION: Structs
+#TODO: Generic types
+
+"""
+$(TYPEDEF)
+
+Represents a node of the tree.
+
+# Fields
+  - `lo`: The start index of the represented group.
+  - `hi`: The stop index of the represented group.
+  - `depth`: The depth of the node
+  - `idx`: The index of the node.
+"""
+struct Node
+  lo::UInt
+  hi::UInt
+  depth::UInt
+  idx::UInt
 end
 
 
-Tree(root::Tree, idx) = Tree(root.data_vec,
-                             root.tree_vec[idx].lo,
-                             root.tree_vec[idx].hi,
-                             root.tree_vec,
-                             idx,
-                             root.tree_vec[idx].children,
-                             root.tree_vec[idx].depth)
+"""
+$(TYPEDEF)
 
-AbstractTrees.children(t::Tree) = Tree.(Ref(t), t.children)
-AbstractTrees.nodevalue(t::Tree) = t.data_vec[t.lo]
+Represents the tree information
 
-
-function make_tree(R)
-  length_unique(R)
+# Fields
+  - `data`: The data vector of the tree.
+  - `nodes`: The vector of nodes of the tree.
+  - `children`: The children of each node.
+  - `bitlen`: The bit length of the bit groups.
+"""
+struct TreeInfo
+  data::Vector{UInt}
+  nodes::Vector{Node}
+  children::Vector{Vector{UInt}}
+  bitlen::UInt
 end
 
-function length_unique(R)
-  acc = zero(length(R))
 
-  length(R) == 0 && return acc
+"""
+$(TYPEDEF)
 
-  p = first(R)
-  acc += one(acc)
+Represents the tree.
 
-  # TODO: Try binary search
-  for r in R
-    if r != p
-      p = r
-      acc += one(acc)
-    end
+# Fields
+  - `info`: The tree information.
+  - `root`: Index to the root of the tree.
+"""
+struct TreeHandle
+  info::TreeInfo
+  root::UInt
+end
+#!SECTION
+
+#SECTION: AbstractTrees
+AbstractTrees.children(t::TreeHandle)  = TreeHandle.(Ref(t.info), t.info.children[t.root])
+AbstractTrees.nodevalue(t::TreeHandle) = t.info.data[t.info.nodes[t.root].lo]
+#!SECTION
+
+"""
+$(SIGNATURES)
+
+Linear searches the next node high.
+
+# Arguments
+  - `R`: The array to search.
+  - `lo`: The start index.
+  - `hi`: The stop index.
+  - `depth`: The current depth in the tree. (Starts at 0)
+  - `bitlen`: The bitlen of the each bit group.
+"""
+function get_node_hi(R, lo, hi, depth, bitlen)
+  tag(x) = radixshft(x, depth, bitlen)
+
+  lo_tag = tag(@inbounds R[lo])
+  lo += 1
+  while lo <= hi && lo_tag == tag(@inbounds R[lo])
+    lo += 1
+  end
+  return lo - 1
+end
+
+
+"""
+$(SIGNATURES)
+
+Counts all nodes in the tree.
+
+# Arguments
+  - `R`: The array to search.
+  - `lo`: The start index.
+  - `hi`: The stop index.
+  - `l`: Maximum depth.
+  - `depth`: The current depth in the tree. (Starts at 0)
+  - `bitlen`: The bitlen of the each bit group.
+"""
+function count_nodes(R, lo, hi, l, depth, bitlen)
+  lo > hi    && return hi, 0
+  depth == l && return get_node_hi(R, lo, hi, depth, bitlen), 1
+
+  tag(x)  = radixshft(x, depth, bitlen)
+
+  lo_tag = tag(@inbounds R[lo])
+  count = 0
+
+  while lo <= hi && lo_tag == tag(@inbounds R[lo])
+    lo, cnt = count_nodes(R, lo, hi, l, depth+1, bitlen)
+    # TODO: cnt + 1 is wasteful
+    count += cnt + 1
+    lo += 1
   end
 
-  return acc
+  return lo-1, count
 end
 
 
+"""
+$(SIGNATURES)
 
-function make_tree_impl(root::Tree, L)
+Creates a tree representation of a Morton Array.
 
-  root.depth > L     && return
-  root.lo == root.hi && return
+# Arguments
+  - `R`: The array to convert.
+  - `l`: Maximum depth.
+  - `bitlen`: The bitlen of the each bit group.
+"""
+function make_tree(R, l, bitlen)
+  _, nodes_len = count_nodes(R, 1, length(R), l, 0, bitlen)
+  nodes     = Vector{Node}(undef, nodes_len)
+  children  = Vector{Vector{UInt}}(undef, nodes_len)
+  for i in 1:nodes_len
+    @inbounds children[i] = []
+  end
 
-  tag(x) = (x >> (8*sizeof(x) - root.depth*8)) & 0xFF
+  info = TreeInfo(R, nodes, children, bitlen)
+  root = Node(1, length(R), 0, 1)
+  @inbounds info.nodes[1] = root
+  make_tree_impl(info, root, l, 2)
+
+  return TreeHandle(info, 1)
+end
+
+
+"""
+$(SIGNATURES)
+
+Creates a tree representation of a Morton Array.
+
+# Arguments
+  - `tree`: The tree information.
+  - `root`: The current tree node.
+  - `l`: Maximum depth.
+  - `idx`: Current node index.
+"""
+function make_tree_impl(tree, root, l, idx)
+  root.depth == l && return idx
+
+  tag(x) = radixshft(x, root.depth+1, tree.bitlen)
 
   lo = root.lo
-  idx = root.idx
-
   while lo <= root.hi
-    lo_tag = tag(root.data_vec[lo])
-
-    hi = lo+1
-    while hi <= root.hi && tag(root.data_vec[hi]) == lo_tag
-      hi += 1
-    end
-    hi -= 1
-
-    idx = length(root.tree_vec)+1
-    child = Tree(root.data_vec, lo, hi, root.tree_vec, idx, [], root.depth+1)
-    push!(root.children, idx)
-    push!(root.tree_vec, child)
-
-    make_tree_impl(child, L)
-
+    hi = get_node_hi(tree.data, lo, root.hi, root.depth+1, tree.bitlen)
+    tree.nodes[idx] = Node(lo, hi, root.depth+1, idx)
+    push!(@inbounds(tree.children[root.idx]), idx)
     lo = hi+1
+    idx += 1
   end
 
+  for child_idx in @inbounds(tree.children[root.idx])
+    idx = make_tree_impl(tree, tree.nodes[child_idx], l, idx)
+  end
+
+  return idx
 end

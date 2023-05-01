@@ -147,8 +147,20 @@ Selects the corresponding radix.
   - `csd`: The `CountSortDetails` object to base the selection on.
   - `x`: The value from which the radix is computed.
 """
-radixsel(csd::CountSortDetails, x) = (x >> (8*sizeof(x) - depth(csd)*bitlen(csd))) & bitmask(csd)
+radixsel(csd::CountSortDetails, x) = radixshft(x, depth(csd), bitlen(csd)) & bitmask(csd)
 
+
+"""
+$(SIGNATURES)
+
+Shifts the corresponding amount of bits.
+
+# Arguments
+  - `x`: The value from which the radix is computed.
+  - `depth`: The current depth.
+  - `bitlen`: The bit length of the bit groups.
+"""
+radixshft(x, depth, bitlen) = (x >> (8*sizeof(x) - depth*bitlen))
 
 @inline Base.selectdim(A, csd::CountSortDetails, i) = staticselectdim(A, Val(leaddim(csd)), i)
 # !SECTION: CountSortDetails
