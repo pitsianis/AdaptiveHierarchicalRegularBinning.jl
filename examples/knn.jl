@@ -2,9 +2,7 @@ using AdaptiveHierarchicalRegularBinning
 using AbstractTrees
 
 
-
-heap_push!(A, I, L, b, j, d) = @inbounds begin
-
+heap_down!(A, I, L) = @inbounds begin
   @inline get_max_idx(i) = let l=2i, r=2i+1, n=length(A)
     if l > n
       i
@@ -14,10 +12,6 @@ heap_push!(A, I, L, b, j, d) = @inbounds begin
       r
     end
   end
-
-  b >= first(A) && return
-
-  A[1], I[1], L[1] = b, j, d
 
   n = length(A)
   i = 1
@@ -31,12 +25,41 @@ heap_push!(A, I, L, b, j, d) = @inbounds begin
   end
 end
 
+heap_push!(A, I, L, b, j, d) = @inbounds begin
+  b >= first(A) && return
+  A[1], I[1], L[1] = b, j, d
+  heap_down!(A, I, L)
+end
+
 function heap_append!(A, I, L, B, J, d)
   for (b, j) in zip(B, J)
     heap_push!(A, I, L, b, j, d)
   end
 end
 
+
+heap_sort!(A, I, L) = @inbounds begin
+  n = length(A)
+  rA = @view A[1:n]
+  rI = @view I[1:n]
+  rL = @view L[1:n]
+
+  while true
+    rA[1], rA[end] = rA[end], rA[1]
+    rI[1], rI[end] = rI[end], rI[1]
+    rL[1], rL[end] = rL[end], rL[1]
+
+    n = length(rA)-1
+
+    n <= 1 && break
+
+    rA = @view A[1:n]
+    rI = @view I[1:n]
+    rL = @view L[1:n]
+
+    heap_down!(rA, rI, rL)
+  end
+end
 
 knn_impl!(tree, child_idx, point_idx, indices, distances, levels) = @inbounds begin
   nindex(tree) == 0 && return false
@@ -62,11 +85,16 @@ knn_impl!(tree, child_idx, point_idx, indices, distances, levels) = @inbounds be
   heap_append!(ldistances, lindices, llevels, dists, corpus_idx, depth(tree))
 
 
+  ret = true
   if any(abs.(point .- qcenter(tree)) .+ first(ldistances) .>= qbox(tree))
-    return knn_impl!(AbstractTrees.parent(tree), nindex(tree), point_idx, indices, distances, levels)
+    ret = knn_impl!(AbstractTrees.parent(tree), nindex(tree), point_idx, indices, distances, levels)
   end
 
-  return true
+  if child_idx == 0
+    heap_sort!(ldistances, lindices, llevels)
+  end
+
+  return ret
 end
 
 
@@ -87,9 +115,6 @@ function knn(tree, query, k)
       end
     end
   end
-
-
-  #TODO: Heap sort
 
   return indices, distances, levels
 end
