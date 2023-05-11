@@ -1,24 +1,22 @@
+using AdaptiveHierarchicalRegularBinning
 using AdaptiveHierarchicalRegularBinning: make_tree
+using AbstractTrees
 using Test
 
 
 @testset "Tree" begin
-  A = rand(UInt, 2^15)
-  l = 8
-  bitlen = 8
-  @time tree = make_tree(A, l, bitlen)
+  dims = 2
+  d, n = 8, 2^15
+  V = rand(Float32, (dims==1 ? (n, d) : (d, n))...)
+  R = sort(rand(UInt, n))
+  l = div(sizeof(eltype(R))*8, d)
+  scale = 1.0
+  offset = fill(zero(eltype(V)), d)
+  tree = make_tree(V, R, l, d, scale, offset; dims=dims)
 
-  function iterate_nodes(f, tree, root=1)
-    f(tree.info.nodes[root])
-
-    for child in tree.info.children[root]
-      iterate_nodes(f, tree, child)
-    end
-  end
-
-  iterate_nodes(tree) do node
-    G = @view A[node.lo:node.hi]
-    G = G .>> (sizeof(eltype(G))*8 - bitlen*node.depth)
-    @test all(G .== G[1])
+  foreach(PreOrderDFS(tree)) do node
+    lR = encpoints(node)
+    lG = lR .>> (sizeof(eltype(lR))*8 - bitlen(node)*depth(node))
+    @test all(lG .== nodevalue(node))
   end
 end

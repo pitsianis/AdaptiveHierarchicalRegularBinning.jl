@@ -46,7 +46,7 @@ Encodes a set of points using the morton encoding.
 
 # Arguments
   - `R`: The resulting vector.
-  - `V`: The input matrix.
+  - `V`: The input matrix. Will be scaled and translated.
   - `l`: The levels of the encoding.
 
 # Keyword Arguments
@@ -69,7 +69,8 @@ function spatial_encode!(R::AbstractVector{<:Integer}, V::AbstractMatrix, l::Int
 
     @inbounds for i in local_range(k)
       v = staticselectdim(V, dims, i)
-      q .= local_quantizer.(σ .* (v .- δ))
+      v .= σ .* (v .- δ)
+      q .= local_quantizer.(v)
       R[i] = bit_interleave(q)
     end
   end

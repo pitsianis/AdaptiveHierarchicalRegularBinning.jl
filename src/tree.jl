@@ -1,7 +1,6 @@
 using AbstractTrees
 
 #SECTION: Structs
-#TODO: Generic types
 
 """
 $(TYPEDEF)
@@ -11,33 +10,49 @@ Represents a node of the tree.
 # Fields
   - `lo`: The start index of the represented group.
   - `hi`: The stop index of the represented group.
-  - `depth`: The depth of the node
-  - `idx`: The index of the node.
+  - `dpt`: The depth of the node
+  - `nidx`: The index of the node.
+  - `pidx`: The index of the parent node.
 """
-struct Node
+struct NodeInfo
   lo::UInt
   hi::UInt
-  depth::UInt
-  idx::UInt
+  dpt::UInt
+  nidx::UInt
+  pidx::UInt
 end
 
 
 """
 $(TYPEDEF)
 
-Represents the tree information
+Represents the tree information.
 
 # Fields
-  - `data`: The data vector of the tree.
-  - `nodes`: The vector of nodes of the tree.
-  - `children`: The children of each node.
-  - `bitlen`: The bit length of the bit groups.
+  - `T`: The element type of the points.
+  - `E`: The element type of the encoded points.
+  - `B`: The bit length of each bit group in the encoded space.
+  - `D`: The leading dimension.
+
+  - `points`: The cloud of points that the tree spans.
+  - `encoded`: The encoded cloud of `points`.
+  - `scale`: The original scale of the dimensions of the `points`.
+  - `offset`: The per dimension offset of the `points`.
+  - `nodes`: Per node information.
+  - `children`: Per node children.
+  - `maxdepth`: The maximum depth of the tree.
 """
-struct TreeInfo
-  data::Vector{UInt}
-  nodes::Vector{Node}
+struct TreeInfo{T, E, B, D}
+  points::Matrix{T}
+  encoded::Vector{E}
+
+  scale::T
+  offset::Vector{T}
+
+  nodes::Vector{NodeInfo}
   children::Vector{Vector{UInt}}
-  bitlen::UInt
+
+  maxdepth::UInt
 end
 
 
@@ -47,18 +62,67 @@ $(TYPEDEF)
 Represents the tree.
 
 # Fields
+  - `T`: The element type of the points.
+  - `E`: The element type of the encoded points.
+  - `B`: The bit length of each bit group in the encoded space.
+  - `D`: The leading dimension.
+
   - `info`: The tree information.
-  - `root`: Index to the root of the tree.
+  - `nidx`: Index to the current root of the tree.
 """
-struct TreeHandle
-  info::TreeInfo
-  root::UInt
+struct SpatialTree{T, E, B, D}
+  info::TreeInfo{T, E, B, D}
+  nidx::UInt
 end
 #!SECTION
 
+#SECTION: NodeInfo
+NodeInfo(t::SpatialTree) = @inbounds TreeInfo(t).nodes[nindex(t)]
+
+low(n::NodeInfo) = n.lo
+high(n::NodeInfo) = n.hi
+range(n::NodeInfo) = low(n):high(n)
+length(n::NodeInfo) = length(range(n))
+depth(n::NodeInfo) = n.dpt
+nindex(n::NodeInfo) = n.nidx
+pindex(n::NodeInfo) = n.pidx
+#!SECTION
+
+#SECTION: TreeInfo
+TreeInfo(V, R, N, C, bitlen, depth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, scale, offset, N, C, depth)
+TreeInfo(t::SpatialTree) = t.info
+
+eltype(  ::TreeInfo{T}                          ) where T = T
+enctype( ::TreeInfo{T, E}       where {T}       ) where E = E
+bitlen(  ::TreeInfo{T, E, B}    where {T, E}    ) where B = B
+leaddim( ::TreeInfo{T, E, B, D} where {T, E, B} ) where D = D
+#!SECTION
+
+#SECTION: SpatialTree
+SpatialTree(info::TreeInfo, nidx) = SpatialTree{eltype(info), enctype(info), bitlen(info), leaddim(info)}(info, nidx)
+
+nindex(t::SpatialTree) = t.nidx
+cindices(t::SpatialTree) = @inbounds TreeInfo(t).children[nindex(t)]
+
+for fn in (:range, :low, :high, :length, :depth, :pindex)
+  @eval $fn(t::SpatialTree) = $fn(NodeInfo(t))
+end
+
+for fn in (:bitlen, :enctype, :leaddim, :eltype)
+  @eval $fn(t::SpatialTree) = $fn(TreeInfo(t))
+end
+
+
+points(t::SpatialTree) = @inbounds staticselectdim(TreeInfo(t).points, Val(leaddim(t)), range(t))
+encpoints(t::SpatialTree) = @inbounds @view TreeInfo(t).encoded[range(t)]
+isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
+#!SECTION
+
 #SECTION: AbstractTrees
-AbstractTrees.children(t::TreeHandle)  = TreeHandle.(Ref(t.info), t.info.children[t.root])
-AbstractTrees.nodevalue(t::TreeHandle) = t.info.data[t.info.nodes[t.root].lo]
+AbstractTrees.getroot(t::SpatialTree)   = SpatialTree(TreeInfo(t), 1)
+AbstractTrees.parent(t::SpatialTree)    = SpatialTree(TreeInfo(t), pindex(t))
+AbstractTrees.children(t::SpatialTree)  = Iterators.map((i)->SpatialTree(TreeInfo(t), i), cindices(t))
+AbstractTrees.nodevalue(t::SpatialTree) = radixshft(first(encpoints(t)), depth(t), bitlen(t))
 #!SECTION
 
 """
@@ -128,20 +192,18 @@ Creates a tree representation of a Morton Array.
   - `l`: Maximum depth.
   - `bitlen`: The bitlen of the each bit group.
 """
-function make_tree(R, l, bitlen)
-  _, nodes_len = count_nodes(R, 1, length(R), l, 0, bitlen)
-  nodes     = Vector{Node}(undef, nodes_len)
-  children  = Vector{Vector{UInt}}(undef, nodes_len)
-  for i in 1:nodes_len
-    @inbounds children[i] = []
-  end
+function make_tree(V, R, maxdpt, bitlen, scale, offset; dims)
+  _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
+  nodes    = Vector{NodeInfo}(undef, nodes_len)
+  children = [UInt[] for _ in 1:nodes_len]
 
-  info = TreeInfo(R, nodes, children, bitlen)
-  root = Node(1, length(R), 0, 1)
-  @inbounds info.nodes[1] = root
-  make_tree_impl(info, root, l, 2)
+  info = TreeInfo(V, R, nodes, children, bitlen, maxdpt, scale, offset; dims=dims)
+  @inbounds nodes[1] = NodeInfo(1, length(R), 0, 1, 0)
 
-  return TreeHandle(info, 1)
+  tree = SpatialTree(info, 1)
+  make_tree_impl(tree, 2)
+
+  return tree
 end
 
 
@@ -156,23 +218,61 @@ Creates a tree representation of a Morton Array.
   - `l`: Maximum depth.
   - `idx`: Current node index.
 """
-function make_tree_impl(tree, root, l, idx)
-  root.depth == l && return idx
+function make_tree_impl(node, idx)
+  isdeep(node) && return idx
 
-  tag(x) = radixshft(x, root.depth+1, tree.bitlen)
+  tag(x) = radixshft(x, depth(node)+1, bitlen(node))
 
-  lo = root.lo
-  while lo <= root.hi
-    hi = get_node_hi(tree.data, lo, root.hi, root.depth+1, tree.bitlen)
-    tree.nodes[idx] = Node(lo, hi, root.depth+1, idx)
-    push!(@inbounds(tree.children[root.idx]), idx)
+  root = getroot(node)
+
+  lo = low(node)
+  while lo <= high(node)
+    hi = get_node_hi(encpoints(root), lo, high(node), depth(node)+1, bitlen(node))
+    @inbounds TreeInfo(root).nodes[idx] = NodeInfo(lo, hi, depth(node)+1, idx, nindex(node))
+    push!(cindices(node), idx)
     lo = hi+1
     idx += 1
   end
 
-  for child_idx in @inbounds(tree.children[root.idx])
-    idx = make_tree_impl(tree, tree.nodes[child_idx], l, idx)
+  for child in children(node)
+    idx = make_tree_impl(child, idx)
   end
 
   return idx
 end
+
+
+qcenter!(center, node::SpatialTree) = qcenter!(center, nodevalue(node), bitlen(node), depth(node))
+qcenter(T, node::SpatialTree) = qcenter(T, nodevalue(node), bitlen(node), depth(node))
+qcenter(node::SpatialTree) = qcenter(eltype(node), nodevalue(node), bitlen(node), depth(node))
+
+
+function qcenter!(center, tag, bitlen, depth)
+  fill!(center, 0.5)
+
+  for _ in 1:depth, bit in 1:bitlen
+    x = @inbounds center[bit]
+    if tag & 1 != 0
+      x += 1
+    end
+    @inbounds center[bit] = x/2
+    tag >>>= 1
+  end
+end
+
+function qcenter(T, tag, bitlen, depth)
+  center = Vector{T}(undef, bitlen)
+  qcenter!(center, tag, bitlen, depth)
+  return center
+end
+
+qcenter(tag, bitlen, depth) = qcenter(typeof(eps()), tag, bitlen, depth)
+
+
+
+qbox(T, node::SpatialTree)  = qbox(T, depth(node))
+qbox(node::SpatialTree) = qbox(eltype(node), depth(node))
+
+qbox(T, depth) = one(T)/(1<<depth)
+qbox(depth) = qbox(typeof(eps()), depth)
+
