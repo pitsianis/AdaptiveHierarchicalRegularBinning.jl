@@ -6,6 +6,7 @@ const files = (
   "spatial_encode",
   "countsort",
   "radixsort",
+  "tree",
 )
 
 @testset "AdaptiveHierarchicalRegularBinning.jl" begin

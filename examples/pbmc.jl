@@ -126,6 +126,6 @@ PXT = X[:, cols] |> transpose |> collect
 dpt = 4
 t = AdaptiveHierarchicalRegularBinning.regural_bin(UInt128, PXT, dpt; dims=2);
 
-include("examples/knn.jl")
+include("knn.jl")
 k = 2^3
 indices, distances, levels = knn(t, PXT, k);
