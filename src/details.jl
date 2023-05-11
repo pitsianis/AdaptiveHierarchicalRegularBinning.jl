@@ -1,4 +1,4 @@
-const DEFAULT_THRESHOLDS = (PAR=100_000, SEQ=10_000, SML=100, DPT=typemax(Int))
+const DEFAULT_THRESHOLDS = (PAR=100_000, SEQ=10_000, SML=1, DPT=typemax(Int))
 
 """
 $(TYPEDEF)
@@ -147,8 +147,9 @@ Selects the corresponding radix.
   - `csd`: The `CountSortDetails` object to base the selection on.
   - `x`: The value from which the radix is computed.
 """
-radixsel(csd::CountSortDetails, x) = radixshft(x, depth(csd), bitlen(csd)) & bitmask(csd)
+radixsel(csd::CountSortDetails, x) = radixsel(x, depth(csd), bitlen(csd))
 
+radixsel(x, depth, bitlen) = radixshft(x, depth, bitlen) & ((one(x)<<bitlen) - 1)
 
 """
 $(SIGNATURES)

@@ -117,3 +117,15 @@ X = pyconvert(Matrix,conc.obsm["X_pca"])
 #  - What is the distribution of points per leaf box for B == 2000?
 #  - What percentage of the NxN distances are needed to find k-NN for k = 2.^3:6?
 #  - What if I repeat the above for X[:,1:50] and two levels and X[:,1:40] and 3 levels?
+
+using AdaptiveHierarchicalRegularBinning
+
+# TODO: Accept X as the input but pass 1:30 as the point-coords-idx param
+cols = 1:30
+PXT = X[:, cols] |> transpose |> collect
+dpt = 4
+t = AdaptiveHierarchicalRegularBinning.regural_bin(UInt128, PXT, dpt; dims=2);
+
+include("examples/knn.jl")
+k = 2^3
+indices, distances, levels = knn(t, PXT, k);
