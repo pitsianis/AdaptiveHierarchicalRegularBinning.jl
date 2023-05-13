@@ -41,6 +41,7 @@ Represents the tree information.
   - `nodes`: Per node information.
   - `children`: Per node children.
   - `maxdepth`: The maximum depth of the tree.
+  - `smlth`: Small threshold.
 """
 struct TreeInfo{T, E, B, D}
   points::Matrix{T}
@@ -53,6 +54,7 @@ struct TreeInfo{T, E, B, D}
   children::Vector{Vector{UInt}}
 
   maxdepth::UInt
+  smlth::UInt
 end
 
 
@@ -89,7 +91,7 @@ pindex(n::NodeInfo) = n.pidx
 #!SECTION
 
 #SECTION: TreeInfo
-TreeInfo(V, R, N, C, bitlen, depth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, scale, offset, N, C, depth)
+TreeInfo(V, R, N, C, bitlen, depth, smlth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, scale, offset, N, C, depth, smlth)
 TreeInfo(t::SpatialTree) = t.info
 
 eltype(  ::TreeInfo{T}                          ) where T = T
@@ -116,6 +118,7 @@ end
 points(t::SpatialTree) = @inbounds staticselectdim(TreeInfo(t).points, Val(leaddim(t)), range(t))
 encpoints(t::SpatialTree) = @inbounds @view TreeInfo(t).encoded[range(t)]
 isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
+issmall(t::SpatialTree) = length(t) <= TreeInfo(t).smlth
 #!SECTION
 
 #SECTION: AbstractTrees
@@ -188,16 +191,22 @@ $(SIGNATURES)
 Creates a tree representation of a Morton Array.
 
 # Arguments
+  - `V`: Cloud of points.
   - `R`: The array to convert.
-  - `l`: Maximum depth.
-  - `bitlen`: The bitlen of the each bit group.
+  - `maxdpt`: Maximum depth.
+  - `smlth`: Small threshold.
+  - `scale`: Scalar for the original coordinates.
+  - `offset`: Per dimension offset.
+
+# Keyword Arguments
+  - `dims`: Leading dimension
 """
-function make_tree(V, R, maxdpt, bitlen, scale, offset; dims)
+function make_tree(V, R, maxdpt, smlth, bitlen, scale, offset; dims)
   _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
   nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
 
-  info = TreeInfo(V, R, nodes, children, bitlen, maxdpt, scale, offset; dims=dims)
+  info = TreeInfo(V, R, nodes, children, bitlen, maxdpt, smlth, scale, offset; dims=dims)
   @inbounds nodes[1] = NodeInfo(1, length(R), 0, 1, 0)
 
   tree = SpatialTree(info, 1)
@@ -213,13 +222,11 @@ $(SIGNATURES)
 Creates a tree representation of a Morton Array.
 
 # Arguments
-  - `tree`: The tree information.
-  - `root`: The current tree node.
-  - `l`: Maximum depth.
+  - `node`: The current node to build.
   - `idx`: Current node index.
 """
 function make_tree_impl(node, idx)
-  isdeep(node) && return idx
+  (isdeep(node) || issmall(node)) && return idx
 
   tag(x) = radixshft(x, depth(node)+1, bitlen(node))
 
