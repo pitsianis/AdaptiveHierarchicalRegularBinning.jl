@@ -2,10 +2,14 @@ using BitOperations
 
 # SECTION: Precompilation dependencies
 function has_pdep()
-  # NOTE: https://discourse.julialang.org/t/bit-manipulation-instruction-set/5368/9
-  CPUInfo = zeros(Int32, 4)
-  ccall(:jl_cpuidex, Cvoid, (Ptr{Cint}, Cint, Cint), CPUInfo, 7, 0)
-  return CPUInfo[2] & 0x100 != 0
+  try
+    # NOTE: https://discourse.julialang.org/t/bit-manipulation-instruction-set/5368/9
+    CPUInfo = zeros(Int32, 4)
+    ccall(:jl_cpuidex, Cvoid, (Ptr{Cint}, Cint, Cint), CPUInfo, 7, 0)
+    return CPUInfo[2] & 0x100 != 0
+  catch
+    return false
+  end
 end
 # !SECTION
 
