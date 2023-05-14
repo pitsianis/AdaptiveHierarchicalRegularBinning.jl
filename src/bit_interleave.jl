@@ -66,8 +66,10 @@ bit_space(::Type{Pdep}, w::UInt8,  n::Integer) = convert(UInt8,  bit_space(Pdep,
 bit_space(::Type{Pdep}, w::UInt16, n::Integer) = convert(UInt16, bit_space(Pdep, convert(UInt32, w), n) & 0xFFFF)
 
 # Imlementations for Pdep
-bit_space(::Type{Pdep}, w::UInt32, n::Integer) = pdep(w, bit_space_mask(UInt32, n))
-bit_space(::Type{Pdep}, w::UInt64, n::Integer) = pdep(w, bit_space_mask(UInt64, n))
+if has_pdep()
+  bit_space(::Type{Pdep}, w::UInt32, n::Integer) = pdep(w, bit_space_mask(UInt32, n))
+  bit_space(::Type{Pdep}, w::UInt64, n::Integer) = pdep(w, bit_space_mask(UInt64, n))
+end
 
 # Generic fallback (mainly for UInt128)
 bit_space(::Type{Pdep}, w::Unsigned, n::Integer) = bit_space(Brute, w, n)
