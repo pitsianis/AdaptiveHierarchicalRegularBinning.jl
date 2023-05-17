@@ -6,8 +6,8 @@ n = 10_000
 d = 3
 @testset "CountSort(n=$n, d=$d)" begin
 
-  @testset "CountSortDetails(bitlen=$bitlen, leaddim=$dims, depth=$depth)" for bitlen = 1:16, dims = 1:2, depth = 1:cld(64, bitlen)
-    print("bitlen=$bitlen, leaddim=$dims, depth=$depth")
+  @testset "CountSortDetails(bitlen=$bitlen, leaddim=$dims)" for bitlen = 1:16, dims = 1:2
+    print("bitlen=$bitlen, leaddim=$dims")
 
     Va = dims == 1 ? rand(n, d) : rand(d, n)
     Ra = rand(UInt, n)
