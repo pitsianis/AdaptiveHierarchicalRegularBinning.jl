@@ -7,6 +7,8 @@ d = 3
 @testset "CountSort(n=$n, d=$d)" begin
 
   @testset "CountSortDetails(bitlen=$bitlen, leaddim=$dims, depth=$depth)" for bitlen = 1:16, dims = 1:2, depth = 1:cld(64, bitlen)
+    print("bitlen=$bitlen, leaddim=$dims, depth=$depth")
+
     Va = dims == 1 ? rand(n, d) : rand(d, n)
     Ra = rand(UInt, n)
     Ia = UInt.(1:n)
@@ -32,6 +34,7 @@ d = 3
       countsort_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, csd)
 
       @test issorted( radixsel.(Ref(csd),  Rb[lo:hi]) )
+      print(" Sequential OK.")
     end
 
 
@@ -51,6 +54,7 @@ d = 3
       countsort_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, C, csd)
 
       @test issorted( radixsel.(Ref(csd),  Rb[lo:hi]) )
+      println(" Parallel OK.")
     end
   end
 
