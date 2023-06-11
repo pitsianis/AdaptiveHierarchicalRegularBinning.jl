@@ -36,6 +36,7 @@ Represents the tree information.
 
   - `points`: The cloud of points that the tree spans.
   - `encoded`: The encoded cloud of `points`.
+  - `perm`: The permutation of the `points`.
   - `scale`: The original scale of the dimensions of the `points`.
   - `offset`: The per dimension offset of the `points`.
   - `nodes`: Per node information.
@@ -45,6 +46,7 @@ Represents the tree information.
 struct TreeInfo{T, E, B, D}
   points::Matrix{T}
   encoded::Vector{E}
+  perm::Vector{UInt}
 
   scale::T
   offset::Vector{T}
@@ -89,7 +91,7 @@ pindex(n::NodeInfo) = n.pidx
 #!SECTION
 
 #SECTION: TreeInfo
-TreeInfo(V, R, N, C, bitlen, depth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, scale, offset, N, C, depth)
+TreeInfo(V, R, I, N, C, bitlen, depth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, I, scale, offset, N, C, depth)
 TreeInfo(t::SpatialTree) = t.info
 
 eltype(  ::TreeInfo{T}                          ) where T = T
@@ -192,12 +194,12 @@ Creates a tree representation of a Morton Array.
   - `l`: Maximum depth.
   - `bitlen`: The bitlen of the each bit group.
 """
-function make_tree(V, R, maxdpt, bitlen, scale, offset; dims)
+function make_tree(V, R, I, maxdpt, bitlen, scale, offset; dims)
   _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
   nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
 
-  info = TreeInfo(V, R, nodes, children, bitlen, maxdpt, scale, offset; dims=dims)
+  info = TreeInfo(V, R, I, nodes, children, bitlen, maxdpt, scale, offset; dims=dims)
   @inbounds nodes[1] = NodeInfo(1, length(R), 0, 1, 0)
 
   tree = SpatialTree(info, 1)
@@ -276,3 +278,9 @@ qbox(node::SpatialTree) = qbox(eltype(node), depth(node))
 qbox(T, depth) = one(T)/(1<<depth)
 qbox(depth) = qbox(typeof(eps()), depth)
 
+Base.@propagate_inbounds function original_perm!(tree, I)
+  staticselectdim(I, Val(leaddim(tree.info)), tree.info.perm) .= tree.info.perm[I]
+  I
+end
+
+Base.@propagate_inbounds original_perm(tree, I) = original_perm!(tree, copy(I))

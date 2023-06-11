@@ -63,7 +63,7 @@ function regural_bin(RT, V, l; dims)
   Ra[P] .= Rb[P]
   Ia[P] .= Ib[P]
 
-  tree = make_tree(V, R, l, bitlen, scale, offset; dims=dims)
+  tree = make_tree(V, R, I, l, bitlen, scale, offset; dims=dims)
 
   return tree
 end
