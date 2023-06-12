@@ -86,7 +86,7 @@ knn_impl!(tree, child_idx, point_idx, indices, distances, levels) = @inbounds be
 
 
   ret = true
-  if any(abs.(point .- qcenter(tree)) .+ first(ldistances) .>= qbox(tree))
+  if any(abs.(point .- center(tree)) .+ first(ldistances) .>= box(tree))
     ret = knn_impl!(AbstractTrees.parent(tree), nindex(tree), point_idx, indices, distances, levels)
   end
 

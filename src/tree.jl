@@ -244,9 +244,12 @@ function make_tree_impl(node, idx)
 end
 
 
+scalar(tree::SpatialTree) = tree.info.scale
+translation(tree::SpatialTree) = tree.info.offset
+
 qcenter!(center, node::SpatialTree) = qcenter!(center, nodevalue(node), bitlen(node), depth(node))
-qcenter(T, node::SpatialTree) = qcenter(T, nodevalue(node), bitlen(node), depth(node))
-qcenter(node::SpatialTree) = qcenter(eltype(node), nodevalue(node), bitlen(node), depth(node))
+qcenter(T, node::SpatialTree) = qcenter!(Vector{T}(undef, bitlen(node)), node)
+qcenter(node::SpatialTree) = qcenter(eltype(node), node)
 
 
 function qcenter!(center, tag, bitlen, depth)
@@ -260,16 +263,16 @@ function qcenter!(center, tag, bitlen, depth)
     @inbounds center[bit] = x/2
     tag >>>= 1
   end
-end
 
-function qcenter(T, tag, bitlen, depth)
-  center = Vector{T}(undef, bitlen)
-  qcenter!(center, tag, bitlen, depth)
   return center
 end
 
-qcenter(tag, bitlen, depth) = qcenter(typeof(eps()), tag, bitlen, depth)
-
+function center!(center, node::SpatialTree)
+  center .= qcenter!(center,  node) ./ scalar(node) .+ translation(node)
+  return center
+end
+center(T, node::SpatialTree) = center!(Vector{T}(undef, bitlen(node)), node)
+center(node::SpatialTree) = center(eltype(node), node)
 
 
 qbox(T, node::SpatialTree)  = qbox(T, depth(node))
@@ -277,6 +280,14 @@ qbox(node::SpatialTree) = qbox(eltype(node), depth(node))
 
 qbox(T, depth) = one(T)/(1<<depth)
 qbox(depth) = qbox(typeof(eps()), depth)
+
+
+function box!(box, node::SpatialTree)
+  box .= qbox(eltype(box), node) ./ scalar(node) .+ translation(node)
+  return box
+end
+box(T, node::SpatialTree) = box!(Vector{T}(undef, bitlen(node)), node)
+box(node::SpatialTree) = box(eltype(node), node)
 
 Base.@propagate_inbounds function original_perm!(tree, I)
   staticselectdim(I, Val(leaddim(tree.info)), tree.info.perm) .= tree.info.perm[I]

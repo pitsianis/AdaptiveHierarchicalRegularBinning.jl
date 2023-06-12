@@ -4,7 +4,7 @@ import Base: length, eltype, range
 using DocStringExtensions
 
 # TODO: Export less things
-export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices, range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, points, encpoints, isdeep, qcenter, qbox, staticselectdim
+export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices, range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
 
 
 include("utilities.jl")

@@ -66,10 +66,9 @@ function spatial_encode!(R::AbstractVector{<:Integer}, V::AbstractMatrix, l::Int
 
   Threads.@threads for k in 1:nT
     q = Vector{eltype(R)}(undef, size(V, Di))
-
+    v = Vector{eltype(V)}(undef, size(V, Di))
     @inbounds for i in local_range(k)
-      v = staticselectdim(V, dims, i)
-      v .= σ .* (v .- δ)
+      v .= σ .* (staticselectdim(V, dims, i) .- δ)
       q .= local_quantizer.(v)
       R[i] = bit_interleave(q)
     end
