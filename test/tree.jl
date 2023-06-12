@@ -10,9 +10,10 @@ using Test
   V = rand(Float32, (dims==1 ? (n, d) : (d, n))...)
   R = sort(rand(UInt, n))
   l = div(sizeof(eltype(R))*8, d)
+  smlth=1
   scale = 1.0
   offset = fill(zero(eltype(V)), d)
-  tree = make_tree(V, R, l, d, scale, offset; dims=dims)
+  tree = make_tree(V, R, l, smlth, d, scale, offset; dims=dims)
 
   foreach(PreOrderDFS(tree)) do node
     lR = encpoints(node)
