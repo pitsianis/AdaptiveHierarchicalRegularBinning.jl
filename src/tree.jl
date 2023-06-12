@@ -289,9 +289,10 @@ end
 box(T, node::SpatialTree) = box!(Vector{T}(undef, bitlen(node)), node)
 box(node::SpatialTree) = box(eltype(node), node)
 
-Base.@propagate_inbounds function original_perm!(tree, I)
+Base.@propagate_inbounds function original_perm!(tree, I, D)
   staticselectdim(I, Val(leaddim(tree.info)), tree.info.perm) .= tree.info.perm[I]
-  I
+  staticselectdim(D, Val(leaddim(tree.info)), tree.info.perm) .= D
+  return I, D
 end
 
-Base.@propagate_inbounds original_perm(tree, I) = original_perm!(tree, copy(I))
+Base.@propagate_inbounds original_perm(tree, I, D) = original_perm!(tree, copy(I), copy(D))
