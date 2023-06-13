@@ -4,7 +4,7 @@ import Base: length, eltype, range
 using DocStringExtensions
 
 # TODO: Export less things
-export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices, range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, points, encpoints, isdeep, qcenter, qbox, staticselectdim
+export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices, range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim, regural_bin, original_perm, original_perm!
 
 
 include("utilities.jl")
@@ -64,7 +64,7 @@ function regural_bin(RT, V, l, smlth; dims)
   Ra[P] .= Rb[P]
   Ia[P] .= Ib[P]
 
-  tree = make_tree(V, R, l, smlth, bitlen, scale, offset; dims=dims)
+  tree = make_tree(V, R, I, l, smlth, bitlen, scale, offset; dims=dims)
 
   return tree
 end
