@@ -278,7 +278,7 @@ center(node::SpatialTree) = center(eltype(node), node)
 qbox(T, node::SpatialTree)  = qbox(T, depth(node))
 qbox(node::SpatialTree) = qbox(eltype(node), depth(node))
 
-qbox(T, depth) = one(T)/(1<<depth)
+qbox(T, depth) = one(T)/(1<<(depth+1))
 qbox(depth) = qbox(typeof(eps()), depth)
 
 
@@ -289,7 +289,7 @@ end
 box(T, node::SpatialTree) = box!(Vector{T}(undef, bitlen(node)), node)
 box(node::SpatialTree) = box(eltype(node), node)
 
-Base.@propagate_inbounds function original_perm!(tree, I, D)
+Base.@propagate_inbounds function original_perm!(tree::SpatialTree, I, D)
   staticselectdim(I, Val(leaddim(tree.info)), tree.info.perm) .= tree.info.perm[I]
   staticselectdim(D, Val(leaddim(tree.info)), tree.info.perm) .= D
   return I, D
