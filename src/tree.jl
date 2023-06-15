@@ -290,7 +290,7 @@ qbox(depth) = qbox(typeof(eps()), depth)
 
 
 function box!(box, node::SpatialTree)
-  box .= qbox(eltype(box), node) ./ scalar(node) .+ translation(node)
+  box .= qbox(eltype(box), node) ./ scalar(node)
   return box
 end
 box(T, node::SpatialTree) = box!(Vector{T}(undef, bitlen(node)), node)
