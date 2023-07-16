@@ -129,4 +129,4 @@ t = AdaptiveHierarchicalRegularBinning.regural_bin(UInt128, PXT, dpt, smlth; dim
 
 include("knn.jl")
 k = 2^3
-indices, distances, levels = knn(t, PXT, k);
+indices, distances = knn(t, PXT, k, true);
