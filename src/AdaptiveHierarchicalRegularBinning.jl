@@ -7,7 +7,7 @@ using DocStringExtensions
 export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices
 export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype
 export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
-export regural_bin, original_perm, original_perm!
+export original_perm, original_perm!
 
 
 include("utilities.jl")
