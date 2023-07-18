@@ -54,6 +54,7 @@ struct TreeInfo{T, E, B, D}
 
   nodes::Vector{NodeInfo}
   children::Vector{Vector{UInt}}
+  context::Vector{Any}
 
   maxdepth::UInt
   smlth::UInt
@@ -93,7 +94,7 @@ pindex(n::NodeInfo) = n.pidx
 #!SECTION
 
 #SECTION: TreeInfo
-TreeInfo(V, R, I, N, C, bitlen, depth, smlth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, I, scale, offset, N, C, depth, smlth)
+TreeInfo(V, R, I, N, C, CTX, bitlen, depth, smlth, scale, offset; dims) = TreeInfo{eltype(V), eltype(R), bitlen, dims}(V, R, I, scale, offset, N, C, CTX, depth, smlth)
 TreeInfo(t::SpatialTree) = t.info
 
 eltype(  ::TreeInfo{T}                          ) where T = T
@@ -121,6 +122,12 @@ points(t::SpatialTree) = @inbounds staticselectdim(TreeInfo(t).points, Val(leadd
 encpoints(t::SpatialTree) = @inbounds @view TreeInfo(t).encoded[range(t)]
 isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
 issmall(t::SpatialTree) = length(t) <= TreeInfo(t).smlth
+
+function setcontext!(t::SpatialTree, v)
+  TreeInfo(t).context[nindex(NodeInfo(t))] = v
+end
+
+getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
 #!SECTION
 
 #SECTION: AbstractTrees
@@ -207,8 +214,9 @@ function make_tree(V, R, I, maxdpt, smlth, bitlen, scale, offset; dims)
   _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
   nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
+  context = Any[nothing for _ in 1:nodes_len]
 
-  info = TreeInfo(V, R, I, nodes, children, bitlen, maxdpt, smlth, scale, offset; dims=dims)
+  info = TreeInfo(V, R, I, nodes, children, context, bitlen, maxdpt, smlth, scale, offset; dims=dims)
   @inbounds nodes[1] = NodeInfo(1, length(R), 0, 1, 0)
 
   tree = SpatialTree(info, 1)
@@ -303,3 +311,31 @@ Base.@propagate_inbounds function original_perm!(tree::SpatialTree, I, D)
 end
 
 Base.@propagate_inbounds original_perm(tree, I, D) = original_perm!(tree, copy(I), copy(D))
+
+
+function applypostorder!(tree::SpatialTree, fleaf, finner)
+  if isempty(cindices(tree))
+    fleaf(tree)
+    return
+  else
+    for c in children(tree)
+      applypostorder!(c, fleaf, finner)
+    end
+    finner(tree)
+    return
+  end
+end
+
+
+function applypreorder!(tree::SpatialTree, fleaf, finner)
+  if isempty(cindices(tree))
+    fleaf(tree)
+    return
+  else
+    finner(tree)
+    for c in children(tree)
+      applypreorder!(c, fleaf, finner)
+    end
+    return
+  end
+end
