@@ -10,7 +10,7 @@ export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
 export original_perm, original_perm!
 export applypostorder!, applypreorder!
 export setcontext!, getcontext
-
+export coincidence
 
 include("utilities.jl")
 include("bit_interleave.jl")
