@@ -29,8 +29,9 @@ heap_push!(A, I, b, j) = @inbounds begin
   heap_down!(A, I)
 end
 
-function heap_append!(A, I, B, J)
+function heap_append!(A, I, B, J, r)
   for (b, j) in zip(B, J)
+    b >= r*r && continue
     heap_push!(A, I, b, j)
   end
 end
@@ -102,7 +103,7 @@ merge_heaps!(A, I, B, J) = begin
   # heapify!(A, I)
 end
 
-knn_impl!(tree, child_idx, point_idx, indices, distances) = @inbounds begin
+knn_impl!(tree, child_idx, point_idx, indices, distances, r) = @inbounds begin
   nindex(tree) == 0 && return
   length(point_idx) == 0 && return
 
@@ -132,25 +133,27 @@ knn_impl!(tree, child_idx, point_idx, indices, distances) = @inbounds begin
     lindices = staticselectdim(indices, Val(dims), pnt_idx)
     ldists = staticselectdim(dists, Val(dims), c)
 
-    heap_append!(ldistances, lindices, ldists, corpus_idx)
+    heap_append!(ldistances, lindices, ldists, corpus_idx, r)
 
     # TODO: optimize heap_append!, profiler: 77% on all nn. O(mlog(n))
     # heapify!(ldists, corpus_idx) O(m)
     # merge_heaps!(ldistances, lindices, ldists, corpus_idx) O(m+n)
 
-    if any(abs.(lpoint .- AdaptiveHierarchicalRegularBinning.center(tree)) .+ sqrt(first(ldistances)) .>= box(tree))
-      i += 1
-    else
+    effective_r = min(r, sqrt(first(ldistances)))
+
+    if all(abs.(lpoint .- AdaptiveHierarchicalRegularBinning.center(tree)) .+ effective_r .<= box(tree))
       deleteat!(point_idx, i)
+    else
+      i += 1
     end
     c += 1
   end
 
-  return knn_impl!(AbstractTrees.parent(tree), nindex(tree), point_idx, indices, distances)
+  return knn_impl!(AbstractTrees.parent(tree), nindex(tree), point_idx, indices, distances, r)
 end
 
 
-function knn(tree, query, k, sortres=false)
+function knn(tree, query; k=length(tree), r=Inf, sortres=false)
   points(tree) == query || throw("Corpus must be the same as query.")
 
   dims = leaddim(tree)
@@ -160,7 +163,7 @@ function knn(tree, query, k, sortres=false)
   distances = fill(Inf, kn)
 
   @sync for leaf in Leaves(tree)
-    Threads.@spawn knn_impl!(leaf, 0, collect(range(leaf)), indices, distances)
+    Threads.@spawn knn_impl!(leaf, 0, collect(range(leaf)), indices, distances, r)
   end
 
   distances .= sqrt.(distances)
