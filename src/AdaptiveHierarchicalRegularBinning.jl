@@ -8,6 +8,8 @@ export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices
 export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype
 export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
 export original_perm, original_perm!
+export applypostorder!, applypreorder!
+export setcontext!, getcontext
 
 
 include("utilities.jl")
@@ -63,7 +65,7 @@ function regural_bin(RT, V, l, smlth; dims = 2)
   alloc = Allocator(UInt)
   radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, alloc)
 
-  Va[:, P] .= Vb[:, P]
+  selectdim(Va, dims, P) .= selectdim(Vb, dims, P)
   Ra[P] .= Rb[P]
   Ia[P] .= Ib[P]
 
