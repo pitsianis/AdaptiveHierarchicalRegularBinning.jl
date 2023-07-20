@@ -93,6 +93,11 @@ nodevalues(Leaves(tree))
 nodevalues(tree)
 # why?
 
+## What are the fields of the TreeInfo struct?
+encoded
+nodes
+smlth
+
 ```
 
 
