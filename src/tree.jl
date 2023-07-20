@@ -358,3 +358,5 @@ function applypreorder!(tree::SpatialTree, fleaf, finner)
     return
   end
 end
+
+coincidence(node::SpatialTree, other::SpatialTree) = depth(node) == depth(other) && nodevalue(node) == nodevalue(other)
