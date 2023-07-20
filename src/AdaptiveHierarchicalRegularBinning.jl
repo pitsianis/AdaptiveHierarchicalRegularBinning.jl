@@ -58,10 +58,10 @@ function regular_bin(RT, V, l, smlth; dims = 2)
   # TODO: Have this as an argument
   # Constructs the tree with a 16bit radix to save on memory.
   rbitlen = 16
-  rdpt    = cld(bitlen*l+1, rbitlen)
+  rdpt    = cld(bitlen*l, rbitlen)
 
   # TODO: Pass thresholds as parameters
-  rsd = RadixSortDetails(rbitlen, 1, length(R); dims=dims, dpt_th=rdpt, sml_th=1)
+  rsd = RadixSortDetails(rbitlen, 1, length(R); dims=dims, dpt_th=rdpt, sml_th=smlth)
   alloc = Allocator(UInt)
   radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, alloc)
 
