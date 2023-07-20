@@ -312,7 +312,16 @@ end
 
 Base.@propagate_inbounds original_perm(tree, I, D) = original_perm!(tree, copy(I), copy(D))
 
+"""
+$(SIGNATURES)
 
+Visit the nodes of a tree in DFS order, and apply a function to each node after returning from its children, (postorder).
+
+# Arguments
+  - `tree`: The tree to walk.
+  - `fleaf`: The function to apply to leaf nodes only.
+  - `finner`: The function to apply to inner nodes only.
+"""
 function applypostorder!(tree::SpatialTree, fleaf, finner)
   if isempty(cindices(tree))
     fleaf(tree)
@@ -327,6 +336,16 @@ function applypostorder!(tree::SpatialTree, fleaf, finner)
 end
 
 
+"""
+$(SIGNATURES)
+
+Visit the nodes of a tree in DFS order, and apply a function to each node on the first visit (preorder).
+
+# Arguments
+  - `tree`: The tree to walk.
+  - `fleaf`: The function to apply to leaf nodes only.
+  - `finner`: The function to apply to inner nodes only.
+"""
 function applypreorder!(tree::SpatialTree, fleaf, finner)
   if isempty(cindices(tree))
     fleaf(tree)

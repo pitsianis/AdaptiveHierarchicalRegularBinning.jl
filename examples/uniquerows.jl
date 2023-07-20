@@ -1,6 +1,6 @@
-using AdaptiveHierarchicalRegularBinning
+using AdaptiveHierarchicalRegularBinning, AbstractTrees
 
-X = rand(2, 1000000)
+X = rand(14, 1000000)
 X[1, :] .= 1:size(X, 2)
 
 X = hcat(X,X[:, 1:10:end])

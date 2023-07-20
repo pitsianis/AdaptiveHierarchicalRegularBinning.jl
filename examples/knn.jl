@@ -196,3 +196,4 @@ function tightbounds(X; dims=1)
   maxs = maximum(X, dims=dims)
   return mins, maxs
 end
+
