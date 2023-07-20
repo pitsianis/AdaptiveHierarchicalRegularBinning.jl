@@ -17,6 +17,21 @@ end
 
 tree = regural_bin(UInt128, X, dpt, sml; dims=dims)
 
+"""
+mins, maxs = tightbounds(X; dims=1)
+Find the tighest box that contains all points.
+
+# Arguments
+  - `X`: The cloud of points.
+
+# Keyword Arguments
+  - `dims`: dimension than enumerates the point coordinates. Defaults to 1.
+"""
+function tightbounds(X; dims=1)
+  mins = minimum(X, dims=dims)
+  maxs = maximum(X, dims=dims)
+  return mins, maxs
+end
 
 # Callbacks
 function leaf_cb(leaf)
@@ -39,3 +54,5 @@ end
 # Evaluate
 # Tree context -> Vector of size d, each element is a tuple of (min, max) per dim
 applypostorder!(tree, leaf_cb, node_cb)
+
+map(x -> x[1], getcontext(tree)) .- minimum(points(tree), dims=2)

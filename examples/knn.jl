@@ -183,20 +183,3 @@ function knn(tree, query; k=length(tree), r=Inf, sortres=false)
   return indices, distances
 end
 
-"""
-$(SIGNATURES)
-
-Find the tighest box that contains all points.
-
-# Arguments
-  - `X`: The cloud of points.
-
-# Keyword Arguments
-  - `dims`: dimension than enumerates the point coordinates. Defaults to 1.
-"""
-function tightbounds(X; dims=1)
-  mins = minimum(X, dims=dims)
-  maxs = maximum(X, dims=dims)
-  return mins, maxs
-end
-
