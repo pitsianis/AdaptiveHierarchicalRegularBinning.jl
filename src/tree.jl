@@ -122,6 +122,7 @@ points(t::SpatialTree) = @inbounds staticselectdim(TreeInfo(t).points, Val(leadd
 encpoints(t::SpatialTree) = @inbounds @view TreeInfo(t).encoded[range(t)]
 isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
 issmall(t::SpatialTree) = length(t) <= TreeInfo(t).smlth
+const isleaf = isempty ∘ cindices
 
 function setcontext!(t::SpatialTree, v)
   TreeInfo(t).context[nindex(NodeInfo(t))] = v

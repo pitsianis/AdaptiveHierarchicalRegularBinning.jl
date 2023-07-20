@@ -5,7 +5,7 @@ using DocStringExtensions
 
 # TODO: Export less things
 export SpatialTree, TreeInfo, NodeInfo, regular_bin, nindex, cindices
-export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype
+export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, isleaf
 export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
 export original_perm, original_perm!
 export applypostorder!, applypreorder!
@@ -40,6 +40,9 @@ Constructs the tree.
 function regular_bin(RT, V, l, smlth; dims = 2)
   R = Vector{RT}(undef, size(V, dims))
   bitlen = size(V, dims==1 ? 2 : 1)
+
+  l * bitlen > sizeof(RT) * 8 && throw("Not enough bits to represent the requested tree")
+
   offset, scale = spatial_encode!(R, V, l; dims=Val(dims), center=false)
   #TODO: Spatial encode should take care of this
   R .= R .<< (sizeof(eltype(R))*8 - bitlen*l)
