@@ -29,7 +29,7 @@ d = 3
 X = rand(d, n)
 L = 20
 B = 32
-tree = regural_bin(UInt64, X, L, B; dims=2);
+tree = regular_bin(UInt64, X, L, B; dims=2);
 
 # What is tree? what are its fields?
 # tree is just an index paired with a `TreeInfo` struct
@@ -83,14 +83,15 @@ for leaf in Leaves(tree)
   box(leaf) # Computes the spatial boundary of the leaf
 end
 
+# how to see the nodevalue of the root node 
+nodevalue(tree)
+# What about the nodevalues of the children of the root node?
 
-# be informal but precise
-# we need to decide on the data structures
-
-# We should have a recursive tree with the same structure
-# at each node except perhaps for the leaf nodes
-# that means the call to `regular_bin` should return
-# multiple outputs
+# the node values of leaves works as expected
+nodevalues(Leaves(tree))
+# but this one does not work
+nodevalues(tree)
+# why?
 
 ```
 

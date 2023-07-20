@@ -4,7 +4,7 @@ import Base: length, eltype, range
 using DocStringExtensions
 
 # TODO: Export less things
-export SpatialTree, TreeInfo, NodeInfo, regural_bin, nindex, cindices
+export SpatialTree, TreeInfo, NodeInfo, regular_bin, nindex, cindices
 export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype
 export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
 export original_perm, original_perm!
@@ -37,7 +37,7 @@ Constructs the tree.
 # Keyword Arguments
   - `dims`: dimension than enumerates the points. Defaults to 2.
 """
-function regural_bin(RT, V, l, smlth; dims = 2)
+function regular_bin(RT, V, l, smlth; dims = 2)
   R = Vector{RT}(undef, size(V, dims))
   bitlen = size(V, dims==1 ? 2 : 1)
   offset, scale = spatial_encode!(R, V, l; dims=Val(dims), center=false)
