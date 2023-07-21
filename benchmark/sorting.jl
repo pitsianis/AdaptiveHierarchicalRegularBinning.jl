@@ -36,6 +36,7 @@ using Test
     Ia[P]    .= Ib[P]
 
     println("sortperm")
+    @time foo = sort(Ia)
     @time pIa = sortperm(Ia)
 
     @test issorted(Ra)
