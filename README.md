@@ -93,11 +93,16 @@ nodevalues(Leaves(tree))
 nodevalues(tree)
 # why?
 
-## What are the fields of the TreeInfo struct?
-encoded
-nodes
-smlth
+## Setup a context that is a struct
+struct TestContext
+  boxrange::Matrix{Float64}
+  interactionlist::Vector{Int}
+end
 
+# initialize it
+setcontext!(c1,TestContext(zeros(2,2),Int[]))
+# modify it
+push!(getcontext(c1).interactionlist, 2, 15)
 ```
 
 
