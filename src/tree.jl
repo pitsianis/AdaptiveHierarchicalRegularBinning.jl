@@ -298,11 +298,7 @@ qbox(T, depth) = one(T)/(1<<(depth+1))
 qbox(depth) = qbox(typeof(eps()), depth)
 
 
-function box!(box, node::SpatialTree)
-  box .= qbox(eltype(box), node) ./ scalar(node)
-  return box
-end
-box(T, node::SpatialTree) = box!(Vector{T}(undef, bitlen(node)), node)
+box(T, node::SpatialTree) = T(qbox(node) / scalar(node))
 box(node::SpatialTree) = box(eltype(node), node)
 
 Base.@propagate_inbounds function original_perm!(tree::SpatialTree, I, D)
