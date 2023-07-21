@@ -11,6 +11,7 @@ function point2boxDist(p, node)
   if all(abs.(p .- c) .<= h)
     return 0
   else
+    # compute the distance to the closest corner of the box (c +/- h)
   end
 
 end
