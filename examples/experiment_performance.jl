@@ -7,8 +7,8 @@
 #SBATCH -o %x-%A-%a.out
 #=
 
-echo julia --compiled-modules=no $(scontrol show job=$SLURM_JOBID | awk -F= '/Command=/{print $2}')
-julia --compiled-modules=no $(scontrol show job=$SLURM_JOBID | awk -F= '/Command=/{print $2}')
+echo julia $(scontrol show job=$SLURM_JOBID | awk -F= '/Command=/{print $2}')
+julia $(scontrol show job=$SLURM_JOBID | awk -F= '/Command=/{print $2}')
 exit
 # =#
 
