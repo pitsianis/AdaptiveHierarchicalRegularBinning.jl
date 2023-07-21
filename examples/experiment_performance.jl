@@ -34,6 +34,9 @@ else
   pids = nothing # pids = addprocs()   # uncomment this if you want to run in parallel mode even without Slurm
 end
 
+@everywhere using Pkg
+@everywhere Pkg.instantiate()
+
 @everywhere using AdaptiveHierarchicalRegularBinning, DrWatson, BenchmarkTools, Random
 @everywhere using Distributed
 IN_SLURM && @everywhere using ClusterManagers
