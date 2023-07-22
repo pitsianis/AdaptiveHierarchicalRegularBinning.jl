@@ -129,6 +129,15 @@ function setcontext!(t::SpatialTree, v)
 end
 
 getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
+
+function Base.show(io::IO, tree::SpatialTree)
+  print(io, 
+  """
+  Spatial Tree: 
+  $(typeof(tree.info.points))($(size(points(tree))[1]),$(Int(size(points(tree))[2]))) points
+  $(length(tree.info.nodes)) nodes, $(length(collect(Leaves(tree)))) leaves and max depth $(tree.info.maxdepth)
+  """)
+end
 #!SECTION
 
 #SECTION: AbstractTrees
