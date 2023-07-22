@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "7986314a62a6c63094b44e1bbc8c29162924859e"
+project_hash = "2a3494a4f3faa274dda50894a700728126c95e45"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "faa260e4cb5aba097a73fab382dd4b5819d8ec8c"
@@ -151,6 +151,12 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.MATLAB]]
+deps = ["Libdl", "SparseArrays"]
+git-tree-sha1 = "f640678d27790992e2a697f60e6afb1be3ebb7fc"
+uuid = "10e44e05-a98a-55b3-a45b-ba969058deb6"
+version = "0.8.4"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]

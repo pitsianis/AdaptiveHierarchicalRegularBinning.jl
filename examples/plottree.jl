@@ -19,24 +19,28 @@ function plottree(ax,node; dim1 = 1, dim2 = 2)
 end
 
 
-d = 4; n = 800
+d = 6; n = 800
 X = zeros(d, n)
-for i = 1:d-1
-  jj = 
-  X[i:i+1,:] = randn(2,n) .+ 4*(d-1)
+b = n ÷ 2
+for i = 1:3
+  jj = (i-1)*b÷2 .+ (1:b)
+  println("$i $(jj[1]):$(jj[end]))")
+  X[2i-1:2i,jj] = randn(2,length(jj)) .+ 4*i
 end
-X = randn(d, n)
+M = rand(d, n) .> 0.50
+X .+= rand(d, n) .* M
 # for _ = 1:100
 # X .+= 0.04*rand(d, n)
 tree = regular_bin(UInt128, X, 6, 2^3; dims=2)
 
 fig, axs = subplots(d, d, layout="constrained", figsize=(10,10))
-for i = 1:d, j = 1:i-1
+for i = 1:d, j = 1:d
   ax = axs[i-1,j-1]
   ax.cla(); plottree(ax, tree; dim1 = i, dim2 = j)
   ax.scatter( X[i,:], X[j,:], color="black", s=0.1)
   ax.set_aspect("equal")
-  ax.set_axis_off()
+  # ax.set_xticks([])
+  # ax.set_yticks([])
 end
 display( fig )
 # sleep(0.1)

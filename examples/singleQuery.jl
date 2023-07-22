@@ -59,3 +59,8 @@ q = Query(rand(d),Inf)
 searchTree(tree, q)
 
 minimum(sqrt.(sum((points(tree) .- q.coords).^2,dims=1)))
+
+fig, axs = subplots(layout="constrained", figsize=(10,10))
+ax.cla(); plottree(ax, tree)
+ax.scatter( X[1,:], X[2,:], color="black", s=0.1)
+display( fig )
