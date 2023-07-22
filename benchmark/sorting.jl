@@ -6,7 +6,7 @@ d = 8
 l = 8
 sigma = 2.0
 
-function do_benchmark(n, d, l, sigma)
+@inbounds function do_benchmark(n, d, l, sigma)
   V = sigma * randn(d, n)
   R = zeros(UInt, n)
   AdaptiveHierarchicalRegularBinning.spatial_encode!(R,V,l; dims = Val(2), center = false)
@@ -24,10 +24,10 @@ function do_benchmark(n, d, l, sigma)
 
   allocator = Allocator(eltype(I))
 
-  println("Seq2Seq")
+  println("Par2Par")
   @btime begin
 
-    radixsort_seq_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, allocator)
+    radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, allocator)
     Va[:, P] .= Vb[:, P]
     Ra[P] .= Rb[P]
     Ia[P] .= Ib[P]
