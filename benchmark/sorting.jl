@@ -27,7 +27,7 @@ function do_benchmark(n, d, l, sigma)
   println("Seq2Seq")
   @btime begin
 
-    radixsort_par_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, allocator)
+    radixsort_seq_seq_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, allocator)
     Va[:, P] .= Vb[:, P]
     Ra[P] .= Rb[P]
     Ia[P] .= Ib[P]
