@@ -91,6 +91,15 @@ length(n::NodeInfo) = length(range(n))
 depth(n::NodeInfo) = n.dpt
 nindex(n::NodeInfo) = n.nidx
 pindex(n::NodeInfo) = n.pidx
+
+function Base.show(io::IO, node::NodeInfo)
+  print(io, 
+  """
+  NodeInfo:
+  node $(Int(node.nidx)), parent $(Int(node.pidx)), depth $(node.dpt) 
+  representing $(Int(node.lo)):$(Int(node.hi)) points
+  """)
+end
 #!SECTION
 
 #SECTION: TreeInfo
@@ -133,7 +142,7 @@ getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
 function Base.show(io::IO, tree::SpatialTree)
   print(io, 
   """
-  Spatial Tree: 
+  SpatialTree: 
   $(typeof(tree.info.points))($(size(points(tree))[1]),$(Int(size(points(tree))[2]))) points
   $(length(tree.info.nodes)) nodes, $(length(collect(Leaves(tree)))) leaves and max depth $(tree.info.maxdepth)
   """)
