@@ -28,7 +28,7 @@ for i = 1:3
   X[2i-1:2i,jj] = randn(2,length(jj)) .+ 4*i
 end
 M = rand(d, n) .> 0.50
-X .+= rand(d, n) .* M
+X .+= 4*rand(d, n) .* M
 # for _ = 1:100
 # X .+= 0.04*rand(d, n)
 tree = regular_bin(UInt128, X, 6, 2^3; dims=2)
