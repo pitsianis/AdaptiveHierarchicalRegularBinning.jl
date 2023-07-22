@@ -8,9 +8,9 @@ Compute displacement vector and the scale to transform the cloud to a unit hyper
 
 # Keyword Arguments
   - `dims`: The leading dimension.
-  - `center`: Whether to divide the slack evenly.
+  - `center`: Boolean, when true, divide the slack evenly, i.e. place the point cloud in the center of the unit hypercube. 
 """
-function translate_scale_vals(V::AbstractMatrix; dims, center)
+function translate_scale_vals(V::AbstractMatrix; dims, center::Bool=true)
   displ = minimum(V, dims=dims)
   scale = maximum(V, dims=dims)
   scale = maximum(scale .- displ)

@@ -2,8 +2,8 @@ using AdaptiveHierarchicalRegularBinning
 using AbstractTrees
 
 # Setup
-n = 100000
-d = 4
+n = 1_000_000
+d = 10
 dims = 2
 
 dpt = 4

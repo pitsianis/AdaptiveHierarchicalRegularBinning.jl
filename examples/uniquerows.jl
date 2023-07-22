@@ -1,6 +1,6 @@
 using AdaptiveHierarchicalRegularBinning, AbstractTrees
 
-X = rand(14, 1000000)
+X = rand(10, 1_000_000)
 X[1, :] .= 1:size(X, 2)
 
 X = hcat(X,X[:, 1:10:end])
@@ -9,7 +9,7 @@ X = hcat(X,X[:, 1:10:end])
 
 # OK solve this using the tree
 
-@time tree = regular_bin(UInt128, X, 8, 100; dims=2)
+@time tree = regular_bin(UInt128, X, 8, 128; dims=2)
 
 function m_unique(tree::SpatialTree)
   leaves = Leaves(tree)
