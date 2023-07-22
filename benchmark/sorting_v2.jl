@@ -52,7 +52,7 @@ end
 
 function do_benchmark( n, d, l, p )
   V = rand(d, n)
-  R = zeros(UInt, n)
+  R = zeros(UInt128, n)
   spatial_encode!(R,V,l; dims = Val(2), center = false)
 
   I = collect(UInt, 1:n)
