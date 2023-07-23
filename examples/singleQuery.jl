@@ -1,10 +1,9 @@
 ## A snipet to show how to perform a single query
 using AdaptiveHierarchicalRegularBinning, AbstractTrees
 
-mutable struct Query
-  coords::Vector{Float64}
-  rho::Float64
-end
+±(dx) = (x) -> (x+dx, x-dx)
+square(x) = x .^ 2
+dist(x, y) = sqrt(sum(square ∘ splat(-), zip(x, y)))
 
 function point2boxDist(p, node)
   h = box(node)
@@ -12,53 +11,43 @@ function point2boxDist(p, node)
   if all(abs.(p .- c) .<= h)
     return 0.0
   else
-    # compute the distance to the closest corner of the box (c +/- h)
-    d = 0.0
-    for i = 1:length(p)
-      d += min(c[i]-h-p[i], c[i]+h-p[i])^2
-    end
-    d = sqrt(d)
-  end
-  return d
-end
-
-function predicate(node, query::Query)
-  return query.rho >= point2boxDist(query.coords, node)
-end
-
-function updatesearch!(query, points)
-  for p in points
-    d = sqrt(sum((p .- query.coords).^2))
-    if d < query.rho
-      query.rho = d
-      println("New closest point with distance ", d)
-    end
+    return sqrt(sum(splat(min) ∘ square ∘ ±(h) ∘ splat(-), zip(c, p)))
   end
 end
 
-function searchTree(tree, query)
+function predicate(node, query, r)
+  return r >= point2boxDist(query, node)
+end
+
+function searchTree(tree, query, r=Inf)
   println("Visiting node ", tree.nidx, " with half-side ", box(tree))
   if isleaf(tree)
-    updatesearch!(query, points(tree))
+    dists = map((p) -> dist(p, query), eachslice(points(tree); dims=leaddim(tree)))
+    k = argmin(dists)
+    return dists[k], range(tree)[k]
   else
     cc = collect(children(tree))
-    dd = [point2boxDist(query.coords, node) for node in cc]
+    dd = [point2boxDist(query, node) for node in cc]
     visitorder = sortperm(dd)
+    j = -1
     for i in visitorder
-      if predicate(cc[i], query)
-        searchTree(cc[i], query)
+      if predicate(cc[i], query, r)
+        r, j = searchTree(cc[i], query, r)
       end
     end
+    return r, j
   end
 end
 
-d = 2; n = 400
+d = 5; n = 40000
 X = rand(d, n)
 tree = regular_bin(UInt128, X, 6, 2^5; dims=2)
-q = Query(rand(d),Inf)
-searchTree(tree, q)
+q = rand(d)
+r = Inf
+r, j = searchTree(tree, q, r)
+i = tree.info.perm[j]
 
-minimum(sqrt.(sum((points(tree) .- q.coords).^2,dims=1)))
+minarg((sqrt.(sum((points(tree) .- q).^2,dims=1)))...)
 
 fig, axs = subplots(layout="constrained", figsize=(10,10))
 ax.cla(); plottree(ax, tree)
