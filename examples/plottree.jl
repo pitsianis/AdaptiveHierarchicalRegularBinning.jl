@@ -39,9 +39,19 @@ for i = 1:d, j = 1:d
   ax.cla(); plottree(ax, tree; dim1 = i, dim2 = j)
   ax.scatter( X[i,:], X[j,:], color="black", s=0.1)
   ax.set_aspect("equal")
-  # ax.set_xticks([])
-  # ax.set_yticks([])
+  for tick in ax.xaxis.get_major_ticks()
+    tick.tick1line.set_visible(false)
+    tick.tick2line.set_visible(false)
+    tick.label1.set_visible(false)
+    tick.label2.set_visible(false)
+  end
+  for tick in ax.yaxis.get_major_ticks()
+    tick.tick1line.set_visible(false)
+    tick.tick2line.set_visible(false)
+    tick.label1.set_visible(false)
+    tick.label2.set_visible(false)
+  end
 end
 display( fig )
-# sleep(0.1)
-# end
+
+# fig.savefig("/tmp/projections-2d.pdf", bbox_inches="tight")

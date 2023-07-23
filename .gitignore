@@ -2,3 +2,4 @@
 /docs/build/
 .CondaPkg/
 .vscode/
+/examples/data/experiments
