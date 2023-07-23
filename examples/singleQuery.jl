@@ -39,7 +39,7 @@ function searchTree(tree, query, r=Inf)
   end
 end
 
-d = 5; n = 40000
+d = 8; n = 4000
 X = rand(d, n)
 tree = regular_bin(UInt128, X, 6, 2^5; dims=2)
 q = rand(d)
@@ -47,9 +47,6 @@ r = Inf
 r, j = searchTree(tree, q, r)
 i = tree.info.perm[j]
 
-minarg((sqrt.(sum((points(tree) .- q).^2,dims=1)))...)
-
-fig, axs = subplots(layout="constrained", figsize=(10,10))
-ax.cla(); plottree(ax, tree)
-ax.scatter( X[1,:], X[2,:], color="black", s=0.1)
-display( fig )
+println("Found       distance: ", r)
+println("Brute force distance: ", 
+  minimum((sqrt.(sum((points(tree) .- q).^2,dims=1)))))
