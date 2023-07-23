@@ -25,8 +25,6 @@ function searchTree(tree, query, r=Inf)
     dists = map((p) -> dist(p, query), eachslice(points(tree); dims=leaddim(tree)))
     k = argmin(dists)
     return dists[k], range(tree)[k]
-    selectdim(points(tree), dims=leaddim(tree))
-    return  mapreduce((p) -> dist(p, query), min, eachslice(points(tree); dims=leaddim(tree)))
   else
     cc = collect(children(tree))
     dd = [point2boxDist(query, node) for node in cc]
