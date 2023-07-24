@@ -1,4 +1,4 @@
-using PythonPlot, AdaptiveHierarchicalRegularBinning, AbstractTrees
+using PythonPlot, AdaptiveHierarchicalRegularBinning, AbstractTrees, Random
 import AdaptiveHierarchicalRegularBinning: center, box, isleaf, children
 
 function plottree(ax,node; dim1 = 1, dim2 = 2)
@@ -18,7 +18,7 @@ function plottree(ax,node; dim1 = 1, dim2 = 2)
   fig
 end
 
-
+Random.seed!(0)
 d = 6; n = 800
 X = zeros(d, n)
 b = n ÷ 2
@@ -54,4 +54,4 @@ for i = 1:d, j = 1:d
 end
 display( fig )
 
-# fig.savefig("/tmp/projections-2d.pdf", bbox_inches="tight")
+# fig.savefig("/tmp/projections-2d.png", bbox_inches="tight", dpi = 300)
