@@ -3,19 +3,36 @@
 # for any input
 # these will be used to test the correctness of the code
 
-using AdaptiveHierarchicalRegularBinning, AbstractTrees
+using AdaptiveHierarchicalRegularBinning, AbstractTrees, LinearAlgebra
 
-p = 25
+maxP = 3
 maxL = 8
+d = 8
+n = 10_000
 X = randn(2,400)
-tree = regular_bin(UInt128, X, maxL, p; dims=2)
+Xcopy = copy(X)
+tree = regular_bin(UInt128, X, maxL, maxP; dims=2)
+
+## Invariants
 
 # Original points are permuted
-X .-  tree.info.points[:,tree.info.perm] 
+@assert Xcopy[:,tree.info.perm] == tree.info.points
+@assert X === tree.info.points
 
 # all leaves have up to p points except the ones at the maxL level
-@assert all( isleaf(node) ? length(points(node)) <= p : true for node in PreOrderDFS(tree) if depth(node) < maxL )
+@assert all(isleaf(node) ? 
+              size(points(node),2) <= maxP : 
+              true 
+            for node in PreOrderDFS(tree) if depth(node) < maxL )
 
-# I am still confused about the tree and the node, 
-# how do I adress a node and how do I adress the subtree
-# starting from this node?
+# all leaves are leaves
+@assert all(isleaf.(Leaves(tree)))
+
+# relationship of quantized and actual box centers and sides
+@assert all(qbox(node) ≈ tree.info.scale * box(node) for node in PreOrderDFS(tree))
+
+# each node represents a contiquous group of points, groups are ordered in preorder DFS
+@assert all(minimum(low.(children(node))) == low(node) 
+            for node in PreOrderDFS(tree) if !isleaf(node))
+
+isroot(tree)
