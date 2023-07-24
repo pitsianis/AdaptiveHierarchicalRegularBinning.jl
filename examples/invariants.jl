@@ -35,4 +35,7 @@ tree = regular_bin(UInt128, X, maxL, maxP; dims=2)
 @assert all(minimum(low.(children(node))) == low(node) 
             for node in PreOrderDFS(tree) if !isleaf(node))
 
+# users can add application-specific information to the tree
+
+# root is only the first node ## BROKEN
 isroot(tree)
