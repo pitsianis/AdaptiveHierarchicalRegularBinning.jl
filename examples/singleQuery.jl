@@ -52,13 +52,13 @@ function test()
 
   @testset "Rand test" begin
     @testset "Iteration $i" for i in 1:10
-      d = 5; n = 40000
-      X = rand(d, n)
+      d = 6; n = 40_000
+      X = randn(d, n)
       q = randn(d, 1) / 2rand()
 
       println("AHRB")
       @time begin
-        tree = @time regular_bin(UInt, X, 3, 1000; dims=2)
+        tree = @time regular_bin(UInt, X, 8, 1000; dims=2)
         r, j = @time searchTree(tree, q, Inf, -1)
         i = tree.info.perm[j]
       end

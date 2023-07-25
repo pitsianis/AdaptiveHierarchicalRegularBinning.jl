@@ -20,10 +20,8 @@ tree = regular_bin(UInt128, X, maxL, maxP; dims=2)
 @assert X === tree.info.points
 
 # all leaves have up to p points except the ones at the maxL level
-@assert all(isleaf(node) ? 
-              size(points(node),2) <= maxP : 
-              true 
-            for node in PreOrderDFS(tree) if depth(node) < maxL )
+@assert all(size(points(node),2) <= maxP 
+            for node in PreOrderDFS(tree) if depth(node) < maxL && isleaf(node) )
 
 # all leaves are leaves
 @assert all(isleaf.(Leaves(tree)))
@@ -32,7 +30,8 @@ tree = regular_bin(UInt128, X, maxL, maxP; dims=2)
 @assert all(qbox(node) ≈ tree.info.scale * box(node) for node in PreOrderDFS(tree))
 
 # each node represents a contiquous group of points, groups are ordered in preorder DFS
-@assert all(minimum(low.(children(node))) == low(node) 
+@assert all(minimum(low.(children(node))) == low(node) &&
+            maximum(high.(children(node))) == high(node)
             for node in PreOrderDFS(tree) if !isleaf(node))
 
 # users can add application-specific information to the tree
