@@ -17,7 +17,8 @@ end
 
 tree = regular_bin(UInt128, X, dpt, sml; dims=dims)
 
-function tightbox(node)
+# axis-aligned bounding box (AABB)
+function boundingbox(node)
   if isleaf(node)
     setcontext!(node, extrema(points(node); dims=leaddim(node))[:])
   else
@@ -28,6 +29,6 @@ function tightbox(node)
   end
 end
 
-foreach(tightbox, PostOrderDFS(tree))
+foreach(boundingbox, PostOrderDFS(tree))
 
 map(x -> x[1], getcontext(tree)) .- minimum(points(tree), dims=dims)
