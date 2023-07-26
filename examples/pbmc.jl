@@ -125,7 +125,7 @@ cols = 1:30
 PXT = X[:, cols] |> transpose |> collect
 dpt = 4
 smlth = 2000
-t = AdaptiveHierarchicalRegularBinning.regular_bin(UInt128, PXT, dpt, smlth; dims=2);
+t = AdaptiveHierarchicalRegularBinning.ahrb!(UInt128, PXT, dpt, smlth; dims=2);
 
 include("knn.jl")
 k = 2^3

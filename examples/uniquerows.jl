@@ -9,7 +9,7 @@ X = hcat(X,X[:, 1:10:end])
 
 # OK solve this using the tree
 
-@time tree = regular_bin(UInt128, X, 8, 128; dims=2)
+@time tree = ahrb!(UInt128, X, 8, 128; dims=2)
 
 function m_unique(tree::SpatialTree)
   leaves = Leaves(tree)

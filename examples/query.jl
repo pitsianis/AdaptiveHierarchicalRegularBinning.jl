@@ -24,7 +24,7 @@ X = cat(C, Q, dims=dims)
 labels = zeros(Bool, nc+nq) # 0 -> C, 1 -> Q
 labels[nc+1:end] .= true
 
-tree = regular_bin(UInt128, X, 5, 1000; dims=dims)
+tree = ahrb!(UInt128, X, 5, 1000; dims=dims)
 
 labels = labels[tree.info.perm]
 

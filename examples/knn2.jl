@@ -15,7 +15,7 @@ if dims == 2
   X = X |> transpose |> collect
 end
 
-tree = regular_bin(UInt128, X, dpt, sml; dims=dims)
+tree = ahrb!(UInt128, X, dpt, sml; dims=dims)
 
 # axis-aligned bounding box (AABB)
 function boundingbox(node)

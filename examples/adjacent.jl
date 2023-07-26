@@ -54,7 +54,7 @@ function adjacentSameLevel(t,s)
 end
 
 X = randn(2,400)
-tree = regular_bin(UInt128, X, 6, 25; dims=2)
+tree = ahrb!(UInt128, X, 6, 25; dims=2)
 
 foreach(node -> setcontext!(node,[]), PreOrderDFS(tree))
 

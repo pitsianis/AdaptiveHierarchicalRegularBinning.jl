@@ -58,7 +58,7 @@ function test()
 
       println("AHRB")
       @time begin
-        tree = @time regular_bin(UInt, X, 8, 1000; dims=2)
+        tree = @time ahrb!(UInt, X, 8, 1000; dims=2)
         r, j = @time searchTree(tree, q, Inf, -1)
         i = tree.info.perm[j]
       end

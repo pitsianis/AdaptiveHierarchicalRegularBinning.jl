@@ -31,7 +31,7 @@ M = rand(d, n) .> 0.50
 X .+= 4*rand(d, n) .* M
 # for _ = 1:100
 # X .+= 0.04*rand(d, n)
-tree = regular_bin(UInt128, X, 6, 2^3; dims=2)
+tree = ahrb!(UInt128, X, 6, 2^3; dims=2)
 
 fig, axs = subplots(d, d, layout="constrained", figsize=(10,10))
 for i = 1:d, j = 1:d

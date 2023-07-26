@@ -15,7 +15,7 @@ d = 20
 X = rand(d, n)
 maxL = 6
 maxP = 32
-tree = regular_bin(UInt128, X, maxL, maxP; dims=2);
+tree = ahrb!(UInt128, X, maxL, maxP; dims=2);
 ```
 
 # What is tree? what are its fields?

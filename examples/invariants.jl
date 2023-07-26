@@ -11,7 +11,7 @@ d = 8
 n = 10_000
 X = randn(2,400)
 Xcopy = copy(X)
-tree = regular_bin(UInt128, X, maxL, maxP; dims=2)
+tree = ahrb!(UInt128, X, maxL, maxP; dims=2)
 
 ## Invariants
 
