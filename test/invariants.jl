@@ -33,6 +33,22 @@ using Test
             for node in PreOrderDFS(tree) if !isleaf(node))
 
   # users can add application-specific information to the tree
+  # axis-aligned bounding box (AABB)
+  function boundingbox(node)
+    if isleaf(node)
+      setcontext!(node, extrema(points(node); dims=leaddim(node))[:])
+    else
+      bound(acc, ctx) = [(min(a[1], c[1]), max(a[2], c[2])) for (a, c) in zip(acc, ctx)]
+      children(node) |>
+      (C) -> mapreduce(getcontext, bound, C) |>
+             (R) -> setcontext!(node, R)
+    end
+  end
+
+  foreach(boundingbox, PostOrderDFS(tree))
+
+  @test all(isequal(getcontext(node), extrema(points(node); dims=leaddim(node))[:])
+            for node in PreOrderDFS(tree))
 
   # root is only the first node ## BROKEN
   @test_broken isroot(tree)
