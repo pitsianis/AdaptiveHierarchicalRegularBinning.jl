@@ -2,6 +2,7 @@ using AdaptiveHierarchicalRegularBinning
 using Test
 
 const files = (
+  "invariants",
   "spatial_encode",
   "countsort",
   "radixsort",
