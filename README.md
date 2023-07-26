@@ -8,7 +8,7 @@ Given a cloud of points in a potentially high dimensional metric space, we parti
 
 *This package is under heavy development, and the API is not stable yet.*
 
-** Example **
+## Example
 
 Install the package with
 ```julia
