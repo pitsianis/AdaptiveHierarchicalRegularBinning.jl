@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "027a4ab9ca97d657fb987702f6f05ecf543f4e42"
+project_hash = "b7b305cfe18f1eb4c0e2838a9bdf5de4de995a49"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "faa260e4cb5aba097a73fab382dd4b5819d8ec8c"
@@ -29,12 +29,6 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 git-tree-sha1 = "0010c1776b44a8b6d794713b9e0dc06d99ea68e8"
 uuid = "e1e0eea2-bc69-5bf6-8574-13634873a17c"
 version = "0.2.3"
-
-[[deps.CodecZlib]]
-deps = ["TranscodingStreams", "Zlib_jll"]
-git-tree-sha1 = "9c209fb7536406834aa938fb149964b985de6c83"
-uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
-version = "0.7.1"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -161,12 +155,6 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
-
-[[deps.MATLAB]]
-deps = ["Libdl", "SparseArrays"]
-git-tree-sha1 = "f640678d27790992e2a697f60e6afb1be3ebb7fc"
-uuid = "10e44e05-a98a-55b3-a45b-ba969058deb6"
-version = "0.8.4"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -341,12 +329,6 @@ version = "1.10.0"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[deps.TranscodingStreams]]
-deps = ["Random", "Test"]
-git-tree-sha1 = "0b829474fed270a4b0ab07117dce9b9a2fa7581a"
-uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.12"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
