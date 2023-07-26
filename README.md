@@ -38,7 +38,7 @@ tree = ahrb!(X, maxL, maxP; dims=2, QT=UInt128);
   @assert all(isleaf.(Leaves(tree)))
 
   # relationship of quantized and actual box centers and sides
-  @assert all(qbox(node) ≈ tree.info.scale * box(node) for node in PreOrderDFS(tree))
+  @assert all(qsidelength(node) ≈ tree.info.scale * sidelength(node) for node in PreOrderDFS(tree))
 
   # each node represents a contiquous group of points, groups are ordered in preorder DFS
   @assert all(minimum(low.(children(node))) == low(node) &&
