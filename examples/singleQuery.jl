@@ -5,7 +5,7 @@ using AdaptiveHierarchicalRegularBinning, AbstractTrees
 square(x) = x .^ 2
 
 function point2boxDist(p, node)
-  h = box(node)    # Get the half-side lengths of the box
+  h = sidelength(node) / 2   # Get the half-side lengths of the box
   c = center(node) # Get the center coordinates of the box
 
   # Calculate the vector from the point to the box's center

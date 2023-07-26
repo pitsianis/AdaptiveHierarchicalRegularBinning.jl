@@ -26,7 +26,7 @@ using Test
       @test all(isleaf.(Leaves(tree)))
 
       # relationship of quantized and actual box centers and sides
-      @test all(qbox(node) ≈ tree.info.scale * box(node) for node in PreOrderDFS(tree))
+      @test all(qsidelength(node) ≈ tree.info.scale * sidelength(node) for node in PreOrderDFS(tree))
 
       # each node represents a contiquous group of points, groups are ordered in preorder DFS
       @test all(minimum(low.(children(node))) == low(node) &&

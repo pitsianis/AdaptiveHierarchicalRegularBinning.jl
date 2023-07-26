@@ -1,9 +1,9 @@
 using PythonPlot, AdaptiveHierarchicalRegularBinning, AbstractTrees, Random
-import AdaptiveHierarchicalRegularBinning: center, box, isleaf, children
+import AdaptiveHierarchicalRegularBinning: center, sidelength, isleaf, children
 
 function plottree(ax,node; dim1 = 1, dim2 = 2)
   c = AdaptiveHierarchicalRegularBinning.center(node)
-  h = box(node)# *.98
+  h = sidelength(node) / 2
   x = [c[dim1]-h, c[dim1]+h, c[dim1]+h, c[dim1]-h, c[dim1]-h]
   y = [c[dim2]-h, c[dim2]-h, c[dim2]+h, c[dim2]+h, c[dim2]-h]
 

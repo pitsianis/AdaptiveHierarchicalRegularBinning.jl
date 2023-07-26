@@ -6,7 +6,7 @@ using DocStringExtensions
 # TODO: Export less things
 export SpatialTree, TreeInfo, NodeInfo, ahrb!, nindex, cindices
 export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, isleaf
-export points, encpoints, isdeep, qcenter, center, qbox, box, staticselectdim
+export points, encpoints, isdeep, qcenter, center, qsidelength, sidelength, staticselectdim
 export original_perm, original_perm!
 export applypostorder!, applypreorder!
 export setcontext!, getcontext

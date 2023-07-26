@@ -19,7 +19,7 @@
 function neighborhood(a,b)
 
   d = abs.(qcenter(a) .- qcenter(b))
-  r = qbox(a) + qbox(b)
+  r = (qsidelength(a) + qsidelength(b)) / 2
 
   # println("r: $r d: $d")
 
