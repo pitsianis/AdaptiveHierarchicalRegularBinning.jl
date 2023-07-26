@@ -7,11 +7,11 @@ using Test
 @testset "datastructure invariants" begin
   maxP = 3
   maxL = 8
-  d = 8
-  n = 10_000
-  X = randn(2, 400)
+  d = 4
+  n = 1_000
+  X = randn(d, n)
   Xcopy = copy(X)
-  tree = ahrb!(UInt128, X, maxL, maxP; dims=2)
+  tree = ahrb!(X, maxL, maxP; dims=2, QT=UInt128)
 
   # Original points are permuted
   @test Xcopy[:, tree.info.perm] == tree.info.points

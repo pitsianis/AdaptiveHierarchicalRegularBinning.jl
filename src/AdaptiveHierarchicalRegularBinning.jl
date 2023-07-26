@@ -29,23 +29,23 @@ $(SIGNATURES)
 Constructs the tree.
 
 # Arguments
-  - `RT`: The type of the morton vector.
   - `V`: The cloud of points.
-  - `l`: The maximum tree depth.
-  - `smlth`: Small threshold.
+  - `maxL`: The maximum tree depth.
+  - `maxP`: Small threshold.
 
 # Keyword Arguments
   - `dims`: dimension than enumerates the points. Defaults to 2.
+  - `QT`: datype for the quantized coordinate word vector. Defaults to UInt
 """
-function ahrb!(RT, V, l, smlth; dims = 2)
-  R = Vector{RT}(undef, size(V, dims))
+function ahrb!(V, maxL, maxP; dims = 2, QT = UInt)
+  R = Vector{QT}(undef, size(V, dims))
   bitlen = size(V, dims==1 ? 2 : 1)
 
-  l * bitlen > sizeof(RT) * 8 && throw("Not enough bits to represent the requested tree")
+  maxL * bitlen > sizeof(QT) * 8 && throw("Not enough bits to represent the requested tree")
 
-  offset, scale = spatial_encode!(R, V, l; dims=Val(dims), center=false)
+  offset, scale = spatial_encode!(R, V, maxL; dims=Val(dims), center=false)
   #TODO: Spatial encode should take care of this
-  R .= R .<< (sizeof(eltype(R))*8 - bitlen*l)
+  R .= R .<< (sizeof(eltype(R))*8 - bitlen*maxL)
   I = collect(UInt, 1:length(R))
 
   Va=V
@@ -61,10 +61,10 @@ function ahrb!(RT, V, l, smlth; dims = 2)
   # TODO: Have this as an argument
   # Constructs the tree with a 16bit radix to save on memory.
   rbitlen = 16
-  rdpt    = cld(bitlen*l, rbitlen)
+  rdpt    = cld(bitlen*maxL, rbitlen)
 
   # TODO: Pass thresholds as parameters
-  rsd = RadixSortDetails(rbitlen, 1, length(R); dims=dims, dpt_th=rdpt, sml_th=smlth)
+  rsd = RadixSortDetails(rbitlen, 1, length(R); dims=dims, dpt_th=rdpt, sml_th=maxP)
   alloc = Allocator(UInt)
   radixsort_par_par_impl!(Va, Ra, Ia, Vb, Rb, Ib, P, rsd, alloc)
 
@@ -72,7 +72,7 @@ function ahrb!(RT, V, l, smlth; dims = 2)
   Ra[P] .= Rb[P]
   Ia[P] .= Ib[P]
 
-  tree = make_tree(V, R, I, l, smlth, bitlen, scale, offset; dims=dims)
+  tree = make_tree(V, R, I, maxL, maxP, bitlen, scale, offset; dims=dims)
 
   return tree
 end
