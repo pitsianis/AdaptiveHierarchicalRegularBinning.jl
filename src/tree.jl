@@ -133,6 +133,16 @@ isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
 issmall(t::SpatialTree) = length(t) <= TreeInfo(t).smlth
 const isleaf = isempty ∘ cindices
 
+"""
+    leafcount(node)
+
+Get the number of leaves of the tree rooted at `node`.
+
+"""
+# this recurses through all nodes in the tree and so may be slow
+leafcount(node) = isleaf(node) ? 1 : mapreduce(leafcount, +, children(node))
+
+# user-provided context per node
 function setcontext!(t::SpatialTree, v)
   TreeInfo(t).context[nindex(NodeInfo(t))] = v
 end
@@ -144,7 +154,7 @@ function Base.show(io::IO, tree::SpatialTree)
   """
   SpatialTree: 
   $(typeof(tree.info.points))($(size(points(tree))[1]),$(Int(size(points(tree))[2]))) points
-  $(length(tree.info.nodes)) nodes, $(length(collect(Leaves(tree)))) leaves and max depth $(tree.info.maxdepth)
+  $(treesize(tree)) nodes, $(leafcount(tree)) leaves and max depth $(treeheight(tree))
   """)
 end
 #!SECTION
