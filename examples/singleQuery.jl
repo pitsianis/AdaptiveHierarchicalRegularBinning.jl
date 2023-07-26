@@ -1,10 +1,10 @@
 ## A snipet to show how to perform a single query
-using AdaptiveHierarchicalRegularBinning, AbstractTrees
+using AdaptiveHierarchicalRegularBinning, AbstractTrees, Distances
 ±(x, y) = (x+y, x-y)
 ±(dx) = (x) -> x ± dx
 square(x) = x .^ 2
 
-function point2boxDist(p, node)
+function point2boxdist(p, node)
   h = sidelength(node) / 2   # Get the half-side lengths of the box
   c = center(node) # Get the center coordinates of the box
 
@@ -21,26 +21,21 @@ function point2boxDist(p, node)
 end
 
 function predicate(node, query, r)
-  return r >= point2boxDist(query, node)
+  return r >= point2boxdist(query, node)
 end
 
 
-function searchTree(tree, query, r=Inf, i=-1)
+function searchtree(tree, query, r=Inf, i=-1)
   if isleaf(tree)
-    Σ(x) = sum(x, dims=leaddim(tree) == 1 ? 2 : 1)
-    C = points(tree)
-    dists = sqrt.(Σ((C .- query).^2))
-    k = argmin(reshape(dists, :))
-    if dists[k] < r
-      return dists[k], range(tree)[k]
-    end
+    (d,k) = findmin( x -> evaluate(Euclidean(), x, query), eachcol( points(tree) ) )
+    d < r && return ( d, range(tree)[k] )
   else
-    for child in sort!(collect(children(tree)), by=(x)->point2boxDist(query, x))
+    for child in sort!( collect(children(tree)), by= x -> point2boxdist(query, x) )
       predicate(child, query, r) || continue
-      r, i = searchTree(child, query, r, i)
+      r, i = searchtree(child, query, r, i)
     end
   end
-  return r, i
+  return (r, i)
 end
 
 using Test
@@ -59,7 +54,7 @@ function test()
       println("AHRB")
       @time begin
         tree = @time ahrb!(X, 8, 1000; dims=2, QT=UInt)
-        r, j = @time searchTree(tree, q, Inf, -1)
+        r, j = @time searchtree(tree, q, Inf, -1)
         i = tree.info.perm[j]
       end
 
