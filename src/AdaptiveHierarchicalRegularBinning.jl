@@ -43,11 +43,14 @@ function ahrb!(V, maxL, maxP; dims = 2, QT = UInt)
 
   maxL * bitlen > sizeof(QT) * 8 && throw("Not enough bits to represent the requested tree")
 
+  @time begin
   offset, scale = spatial_encode!(R, V, maxL; dims=Val(dims), center=false)
   #TODO: Spatial encode should take care of this
   R .= R .<< (sizeof(eltype(R))*8 - bitlen*maxL)
   I = collect(UInt, 1:length(R))
+  end
 
+  @time begin
   Va=V
   Ra=R
   Ia=I
@@ -71,8 +74,9 @@ function ahrb!(V, maxL, maxP; dims = 2, QT = UInt)
   selectdim(Va, dims, P) .= selectdim(Vb, dims, P)
   Ra[P] .= Rb[P]
   Ia[P] .= Ib[P]
-
-  tree = make_tree(V, R, I, maxL, maxP, bitlen, scale, offset; dims=dims)
+  end
+  
+  tree = @time make_tree(V, R, I, maxL, maxP, bitlen, scale, offset; dims=dims)
 
   return tree
 end

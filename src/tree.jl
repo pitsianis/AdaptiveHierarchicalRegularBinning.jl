@@ -203,7 +203,7 @@ Counts all nodes in the tree.
   - `depth`: The current depth in the tree. (Starts at 0)
   - `bitlen`: The bitlen of the each bit group.
 """
-function count_nodes(R, lo, hi, l, depth, bitlen)
+function count_nodes(R, lo, hi, l, depth, bitlen) # TODO: get rid of this nonesense
   lo > hi    && return hi, 0
   depth == l && return get_node_hi(R, lo, hi, depth, bitlen), 1
 
@@ -240,7 +240,8 @@ Creates a tree representation of a Morton Array.
   - `dims`: Leading dimension
 """
 function make_tree(V, R, I, maxdpt, smlth, bitlen, scale, offset; dims)
-  _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
+  # _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
+  nodes_len = 2*length(R) # TODO: this is wasteful
   nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
   context = Any[nothing for _ in 1:nodes_len]
