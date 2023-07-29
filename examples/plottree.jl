@@ -18,6 +18,14 @@ function plottree(ax,node; dim1 = 1, dim2 = 2)
   fig
 end
 
+function plotpointstree(tree)
+  fig, axs = subplots(layout="constrained", figsize=(10,10))
+  axs.cla(); plottree(axs, tree)
+  X = points(tree)
+  axs.scatter(X[1,:], X[2,:], s=0.5, color="black")
+  display( fig )
+end
+
 Random.seed!(0)
 d = 6; n = 800
 X = zeros(d, n)

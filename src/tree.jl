@@ -240,8 +240,8 @@ Creates a tree representation of a Morton Array.
   - `dims`: Leading dimension
 """
 function make_tree(V, R, I, maxdpt, smlth, bitlen, scale, offset; dims)
-  # _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
-  nodes_len = 2*length(R) # TODO: this is wasteful
+  _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
+  # nodes_len = 2*length(R) # TODO: this is wasteful
   nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
   context = Any[nothing for _ in 1:nodes_len]

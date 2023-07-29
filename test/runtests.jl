@@ -3,6 +3,7 @@ using Test
 
 const files = (
   "invariants",
+  "newtree",
   "spatial_encode",
   "countsort",
   "radixsort",
