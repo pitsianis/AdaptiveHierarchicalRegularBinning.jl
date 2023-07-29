@@ -15,6 +15,7 @@ second((x, y)) = y
     nleaves = length(collect(Leaves(tree)))
 
     @test nleaves == 2^(2 * (maxL - 1))
+    @test nnodes == sum(4.0.^l for l=0:maxL-1)
   end
 end
 
