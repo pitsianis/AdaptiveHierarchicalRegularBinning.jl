@@ -93,10 +93,10 @@ nindex(n::NodeInfo) = n.nidx
 pindex(n::NodeInfo) = n.pidx
 
 function Base.show(io::IO, node::NodeInfo)
-  print(io, 
+  print(io,
   """
   NodeInfo:
-  node $(Int(node.nidx)), parent $(Int(node.pidx)), depth $(node.dpt) 
+  node $(Int(node.nidx)), parent $(Int(node.pidx)), depth $(node.dpt)
   representing $(Int(node.lo)):$(Int(node.hi)) points
   """)
 end
@@ -150,9 +150,9 @@ end
 getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
 
 function Base.show(io::IO, tree::SpatialTree)
-  print(io, 
+  print(io,
   """
-  SpatialTree: 
+  SpatialTree:
   $(typeof(tree.info.points))($(size(points(tree))[1]),$(Int(size(points(tree))[2]))) points
   $(treesize(tree)) nodes, $(leafcount(tree)) leaves and max depth $(treeheight(tree))
   """)
@@ -162,7 +162,11 @@ end
 #SECTION: AbstractTrees
 AbstractTrees.getroot(t::SpatialTree)   = SpatialTree(TreeInfo(t), 1)
 AbstractTrees.parent(t::SpatialTree)    = SpatialTree(TreeInfo(t), pindex(t))
-AbstractTrees.children(t::SpatialTree)  = Iterators.map((i)->SpatialTree(TreeInfo(t), i), cindices(t))
+function AbstractTrees.children(t::SpatialTree; by=nothing)
+  children = map((i)->SpatialTree(TreeInfo(t), i), cindices(t))
+  by === nothing && return children
+  sort!(children, by=by)
+end
 AbstractTrees.nodevalue(t::SpatialTree) = radixshft(first(encpoints(t)), depth(t), bitlen(t))
 #!SECTION
 

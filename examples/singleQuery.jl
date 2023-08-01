@@ -30,7 +30,7 @@ function searchtree(tree, query, r=Inf, i=-1)
     (d,k) = findmin( x -> evaluate(Euclidean(), x, query), eachcol( points(tree) ) )
     d < r && return ( d, range(tree)[k] )
   else
-    for child in sort!( collect(children(tree)), by= x -> point2boxdist(query, x) )
+    for child in children(tree, by= x -> point2boxdist(query, x))
       predicate(child, query, r) || continue
       r, i = searchtree(child, query, r, i)
     end
