@@ -6,7 +6,6 @@
 
 Given a cloud of points in a potentially high dimensional metric space, we partition the points into a hierarchy of regular bins (hypercubes), by subdividing each hypercube adaptively up to a maximum L levels. A bin is not subdivided if it is at the maximum level `maxL` or contains up to `maxP` points.
 
-*This package is under heavy development, and the API is not stable yet.*
 
 ## Example
 
