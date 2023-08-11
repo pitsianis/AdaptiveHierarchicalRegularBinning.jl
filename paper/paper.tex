@@ -507,7 +507,7 @@ non-cubical bins.\footnote{%
 and approximation are the quad trees and oct trees, they are
 explicitly for 2D or 3D particles. Existing extensions of cube binning
 to higher-dimensional feature spaces tend to have full $d$-dimensional
-trees, perhaps, for the easy of indexing to the bins, including the
+trees, perhaps, for the ease of indexing to the bins, including the
 empty bins. The indexing cost in memory usage grows sharply, or even
 exponentially, with the increase in dimension, thereby limiting the
 feature dimension implicitly.
@@ -576,10 +576,10 @@ components: encoding, counting, and permuting (ECP). Each particle is
 mapped to a binary code. The code length can be made uniformly fixed
 or variable across the particles, which are the two extreme cases of
 the {\sc ahrb} encoding scheme with variable block length. For
-sequential algorithm implementation, we introduce two major ways to
+sequential algorithm implementations, we introduce two major ways to
 organize the E-operations, C-operations, and P-operations. 
 %
-For parallel algorithm implementation, there are more options to
+For parallel algorithm implementations, there are more options to
 coordinate and schedule the ECP operations. In the current version,
 {\sc ahrb} implements specific parallel patterns with multi-thread
 processing using Julia's dynamic scheduler on shared-memory computers.
@@ -1051,7 +1051,7 @@ type inference and data alignment in memory at precompilation.
 We demonstrate this capability of {\sc ahrb} in snippet~\ref{lst:annotation}. We
 show how to annotate the {\sc ahrb} nodes recursively with the simple example of
 calculating and saving the mass and mass center of the particles in each tree
-node. In the snippet, the functions {\tt setcontext} and {\tt getcontext} are
+node. In the snippet, the functions {\tt setcontext!} and {\tt getcontext} are
 accessor functions provided by {\sc ahrb}. In the supplementary
 material,\footnote{\scriptsize \href{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/examples/barneshut.jl}{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/examples/barneshut.jl}}
 we demonstrate a dynamic particle simulation via this simple integration
