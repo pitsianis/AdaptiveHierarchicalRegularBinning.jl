@@ -1,7 +1,5 @@
 # AdaptiveHierarchicalRegularBinning
 
-THIS THE DEVELOPMENT, PRIVATE BRANCH!
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Lifecycle:Maturing](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl)
