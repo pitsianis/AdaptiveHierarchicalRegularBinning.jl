@@ -107,7 +107,7 @@ end
 
 See [examples](examples/barneshut.jl)
 
-![N-body simulation of a galaxy](examples/bh-animation.mp4)
+https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/assets/4839092/face4a3d-0f17-49d6-9a2e-2377999bef4a
 
 ***
 **AHRB at JuliaCon 2023**<br/>
