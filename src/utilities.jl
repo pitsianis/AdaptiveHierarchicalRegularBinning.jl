@@ -1,54 +1,39 @@
-begin
-  multithreading() = true
-
-  macro threading(test)
-      esc(:(if $(@__MODULE__).multithreading()
-        Threads.@threads($test)
-      else
-        $test
-      end))
-  end
+function enable_multithreading()
+  Core.eval(@__MODULE__, :(multithreading() = true))
 end
 
-
-@inline function staticselectdim(A, ::Val{D}, i) where {D}
-  I = ntuple(k->k==D ? i : (:), Val(max(ndims(A), D)))
-  @boundscheck checkbounds(A, I...)
-  return @inbounds @view A[I...]
+function disable_multithreading()
+  Core.eval(@__MODULE__, :(multithreading() = false))
 end
 
-# SECTION: Allocator
-struct Allocator{T}
-  pools::Vector{Dict{UInt, Vector{Vector{T}}}}
+debugmode() = false
+
+function enable_debugging()
+  Core.eval(@__MODULE__, :(debugmode() = true))
 end
 
-Allocator(::Type{T}) where {T} = Allocator{T}([Dict() for _ in 1:Threads.nthreads()])
-
-function alloc!(allocator::Allocator{T}, dims::Vararg{<:Integer, N})::Array{T, N} where {T, N}
-  pool = @inbounds allocator.pools[Threads.threadid()]
-  len = prod(dims)
-
-  haskey(pool, len) || return Array{T, N}(undef, dims)
-
-  buffers = @inbounds pool[len]
-
-  isempty(buffers) && return Array{T, N}(undef, dims)
-
-  return reshape(pop!(buffers), dims...)::Array{T, N}
+function disable_debugging()
+  Core.eval(@__MODULE__, :(debugmode() = false))
 end
 
-
-function free!(allocator::Allocator, X::Array{UInt})
-  pool = @inbounds allocator.pools[Threads.threadid()]
-  len = length(X)
-
-  if !haskey(pool, len)
-    pool[len] = []
-  end
-
-  buffers = @inbounds pool[len]
-  push!(buffers, reshape(X, :))
-
-  return
+macro threading(test)
+    esc(:(if $(@__MODULE__).multithreading()
+      Threads.@threads($test)
+    else
+      $test
+    end))
 end
-# !SECTION: Allocator
+
+macro debugging(test)
+    esc(:(if $(@__MODULE__).debugmode()
+      $test
+    end))
+end
+
+macro autoinfiltrate(cond=true)
+  esc(:(if $(@__MODULE__).debugmode()
+    if isdefined(Main, :Infiltrator) && $cond
+      Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    end
+  end))
+end

@@ -1,78 +1,88 @@
-"""
-$(SIGNATURES)
-
-Compute displacement vector and the scale to transform the cloud to a unit hypercube.
-
-# Arguments
-  - `V`: The input matrix.
-
-# Keyword Arguments
-  - `dims`: The leading dimension.
-  - `center`: Boolean, when true, divide the slack evenly, i.e. place the point cloud in the center of the unit hypercube. 
-"""
-function translate_scale_vals(V::AbstractMatrix; dims, center::Bool=true)
-  displ = minimum(V, dims=dims)
-  scale = maximum(V, dims=dims)
-  scale = maximum(scale .- displ)
-  scale += eps(scale)
-  scale \= 1.0
-
-  if center
-    displ /= 2.0
+function do_interleave!(R::Vector{T}, V::Matrix{Float64}, maxL::Int, d::Int) where {T<:Unsigned}
+  @inbounds @fastmath @threading for j = 1 : length(R)
+    c = zero( T )
+    for i = 1 : d
+      v = floor( T, V[i,j] )
+      for l = 1:maxL
+        b = ( (T(1) << (l-1)) & v ) # find correct bit for level
+        b = b << ( i-1 + (d-1)*(l-1) ) # shift to correct position
+        # @assert b & c == 0 # make sure we do not override a bit
+        c |= b
+      end
+    end
+    R[j] = c
   end
-  return (reshape(displ, :), scale)
 end
 
+function fast_spatial_encode!(R, V, maxL, maxdepth=maxL)
+  ex     = foldl( TeeRF(min,max), eachcol(V) |> Broadcasting() )
+  offset = map( first, ex )
+  scale  = maximum( x -> x[2]-x[1], ex ) + eps( eltype(V)(2)^maxdepth )
+  mult   = ( eltype(V)(2)^maxL ) / scale
+  d      = size(V,1)
+  @tturbo for j in axes( V, 2 )
+    for i in axes(V, 1)
+      V[i,j] = mult * ( V[i,j] - offset[i] )
+    end
+  end
+  
+  do_interleave!(R, V, maxL, d)
 
-"""
-$(SIGNATURES)
-
-Quantizes a single coordinate.
-
-# Arguments
-  - `T`: The resulting type.
-  - `x`: The input coordinate.
-  - `l`: The levels of the quantizer.
-"""
-function quantize(T, x, l)
-  return floor(T, x * (2^l))
+  return offset, scale
 end
 
+function do_interleave_block!(R::Tr, V::Tv, lnew::Int, d::Int) where {T<:Unsigned, Tr<:AbstractVector{T}, Tv<:AbstractMatrix{Float64}}
+  @inbounds @fastmath for j in axes( V, 2 )
+    c = R[j]
+    for i in axes( V, 1 )
+      v = floor( T, V[i,j] )
+      for l = 1:lnew
+        b = ( (T(1) << (l-1)) & v ) # find correct bit for level
+        b = b << ( i-1 + (d-1)*(l-1) ) # shift to correct position
+        # @assert b & c == 0 # make sure we do not override a bit
+        c |= b
+      end
+    end
+    R[j] = c
+  end
+end
 
-"""
-$(SIGNATURES)
-
-Encodes a set of points using the morton encoding.
-
-# Arguments
-  - `R`: The resulting vector.
-  - `V`: The input matrix. Will be scaled and translated.
-  - `l`: The levels of the encoding.
-
-# Keyword Arguments
-  - `dims`: The leading dimension.
-  - `center`: Whether to divide the slack evenly.
-"""
-function spatial_encode!(R::AbstractVector{<:Integer}, V::AbstractMatrix, l::Integer; dims::Val{D}, center) where {D}
-  Di = ndims(V) - (D-1)
-  δ, σ = translate_scale_vals(V; dims=D, center=center)
-
-  n = size(V, D)
-  nT = Threads.nthreads()
-  b = cld(n, nT)
-
-  @inline local_quantizer(x) = quantize(eltype(R), x, l)
-  @inline local_range(k) = (k-1)*b + 1 : min(k*b, n)
-
-  Threads.@threads for k in 1:nT
-    q = Vector{eltype(R)}(undef, size(V, Di))
-    v = Vector{eltype(V)}(undef, size(V, Di))
-    @inbounds for i in local_range(k)
-      v .= σ .* (staticselectdim(V, dims, i) .- δ)
-      q .= local_quantizer.(v)
-      R[i] = bit_interleave(q)
+function fast_spatial_encode_block!(R, V, lnew)
+  d    = size(V,1)
+  mult = eltype(V)(2)^lnew
+  @tturbo for j in axes( V, 2 )
+    for i in axes(V, 1)
+      V[i,j] = mult * V[i,j]
     end
   end
 
-  return (δ, σ)
+  do_interleave_block!(R, V, lnew, d)
+
+  return nothing
+end
+
+function prepare_next_levels!(R, lnew, d)
+
+  @inbounds @threading for j in eachindex( R )
+      R[j] <<= lnew * d
+  end
+
+  return nothing
+
+end
+
+function prepare_next_levels!(R0, R1, data_0or1, lnew, d)
+
+  @inbounds @threading for j in eachindex( R0 )
+    if data_0or1[j] == 0
+      R0[j] <<= lnew * d
+    elseif data_0or1[j] == 1
+      R1[j] <<= lnew * d
+    else
+      error("data_0or1[$j] == $(data_0or1[j])")
+    end
+  end
+
+  return nothing
+
 end
