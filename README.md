@@ -56,7 +56,7 @@ tree = ahrb(X, maxL, maxP; QT=UInt128);
 
 ### Properties & invariantes
 
-```
+```julia
 # Original points are permuted
 @assert X[:, tree.info.perm] == points(tree)
 
