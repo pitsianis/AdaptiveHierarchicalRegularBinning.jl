@@ -1,0 +1,27 @@
+title: "Adaptive Hierarchical Regular Binning\\\\ of Data Point Features"
+keywords:
+  - high-dimensional feature vectors
+  - multi-resolution data analysis 
+  - adaptive binning of nonuniform depth
+  - variable code length 
+  - multi-scale near-neighbor search
+authors:
+  - name: Dimitris Floros
+    orcid: 0000-0003-1190-4075
+    affiliation: 1
+  - name: Antonios Skourtis
+    orcid: 0000-0003-1361-440X
+    affiliation: 2
+  - name: Nikos P. Pitsianis
+    orcid: 0000-0002-7353-3524
+    affiliation: 2, 3
+  - name: Xiaobai Sun
+    affiliation: 3
+affiliations:
+  - name: Nicholas School of the Environment, Duke University, Durham, NC, USA
+    index: 1
+  - name: Department of Electical and Computer Engineering, Aristotle University of Thessaloniki, Greece
+    index: 2
+  - name: Department of Computer Science, Duke University, Durham, NC, USA
+    index: 3
+bibliography: ref.bib

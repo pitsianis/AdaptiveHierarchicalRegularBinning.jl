@@ -1,0 +1,1166 @@
+\def\RenderFinalPDF{}
+
+%
+%
+%
+%
+\newif\iffinal
+\ifdefined\RenderFinalPDF
+  \finaltrue
+\fi
+
+
+\iffinal
+  \documentclass[final]{juliacon}
+\else
+  \documentclass{juliacon}
+\fi
+\setcounter{page}{1}
+
+\iffinal\else
+  \usepackage{lineno}
+  \linenumbers
+\fi
+
+\usepackage{caption}
+
+\usepackage{dblfloatfix}
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{cleveref}
+
+\usepackage{paralist}
+
+
+%
+
+\usepackage{minted}
+\usepackage[most]{tcolorbox}
+\usemintedstyle{emacs}
+\tcbuselibrary{minted,breakable,skins}
+
+%
+\definecolor{matrix}{RGB}{85, 255, 85}
+\newtcblisting[list inside=myjulia,auto counter,number within=section]
+{myjulia}[1]{
+  listing engine=minted, 
+  minted language=julia,
+  boxrule=1pt,
+  minted style = emacs,
+  colback=matrix!3!white,colframe=gray!75!black,
+  listing only,
+  boxsep = 1pt, top = 1pt, bottom = 1pt, left = 2pt, right = 2pt,
+  enhanced,
+  drop fuzzy shadow = gray,
+  hbox,
+  center,
+  #1
+}
+
+%
+
+%
+\iffinal\else
+  \setlength {\marginparwidth }{2cm} 
+\fi
+\usepackage[authormarkuptext=name,commandnameprefix=always]{changes}
+\setcommentmarkup{{\IfIsColored{\color{authorcolor}}
+    {}\IfIsAnonymous{#2}{}{\textbf{#3: }}#1}}
+
+\definechangesauthor[name=A,color=orange]{ak}
+\definechangesauthor[name=D,color=blue]{df}
+\definechangesauthor[name=X,color=brown]{xs}
+\definechangesauthor[name=N,color=purple]{np}
+
+\newcommand{\antonis}[1]{\chcomment[id=ak]{#1}}
+\newcommand{\dimitris}[1]{\chcomment[id=df]{#1}}
+\newcommand{\xiaobai}[1]{\chcomment[id=xs]{#1}}
+\newcommand{\nikos}[1]{\chcomment[id=np]{#1}}
+
+
+
+%
+
+\begin{document}
+
+%
+%
+
+\title{Adaptive Hierarchical Regular Binning\\ of Data Point Features}
+
+\author[1]{Dimitris Floros}
+\author[2]{Antonios Skourtis}
+\author[2, 3]{Nikos P. Pitsianis}
+\author[3]{Xiaobai Sun}
+\affil[1]{Nicholas School of the Environment, Duke University, Durham, NC, USA}
+\affil[2]{Department of Electical and Computer Engineering, Aristotle University of Thessaloniki, Greece}
+\affil[3]{Department of Computer Science, Duke University, Durham, NC, USA}
+
+\keywords{high-dimensional feature vectors, multi-resolution data analysis, adaptive binning of nonuniform depth, variable code length, multi-scale near-neighbor search}
+
+\hypersetup{
+pdftitle = {Adaptive Hierarchical Regular Binning\\ of Data Point Features},
+pdfsubject = {JuliaCon 2022 Proceedings},
+pdfauthor = {Dimitris Floros, Antonios Skourtis, Nikos P. Pitsianis, Xiaobai Sun},
+pdfkeywords = {high-dimensional feature vectors, multi-resolution data analysis, adaptive binning of nonuniform depth, variable code length, multi-scale near-neighbor search},
+}
+
+ 
+
+\maketitle
+
+\iffinal\else
+  \tableofcontents  
+  %
+  %
+\section*{How to use the \texttt{changes} package (for authors)}
+
+Each author has a command with his name, e.g., \texttt{dimitris}.
+Each author has a unique ID with his initials, for the following commands:
+
+You can \chhighlight[id=df,comment={with comments}]{highlight text}
+
+You can specify \chadded[id=df]{text to by added}
+
+You can specify \chdeleted[id=df]{text to be deleted}
+
+You can specify \chreplaced[id=df,comment={with comments}]{with new text}{text to be replaced}
+
+When compiling the final version, all of the changes are taken, and the comments
+are removed. \fi
+
+%
+%
+%
+
+ \begin{abstract}
+    %
+   The package 
+   \texttt{\small AdaptiveHierarchicalRegularBinning.jl}~\footnote{\href{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl}{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl}},
+   or {\sc ahrb} for short, is introduced in this paper.  In the base case,
+   given a set of $n$ point particles, or feature vectors, in a
+   $d$-dimensional metric space, {\sc ahrb} constructs a tree
+   hierarchy that sorts the particles into nested bin nodes up to a
+   cut-off level $\ell_{c}$.  The bin nodes at each level correspond
+   to non-overlapping $d$-dimensional cubes of the same size, each bin
+   containing at least one particle, each non-leaf bin containing more
+   than $p_c$ particles.  The choice of the geometric shape and
+   partition parameters $\ell_{c}$ and $p_{c}$ serves the purpose of
+   facilitating downstream tasks that involve accurate
+   multi-resolution analysis of particle-particle relationships.  {\sc
+     ahrb} offers additional functionalities, especially for
+   near-neighbor extraction or far-neighbor filtering at various
+   spatial scales.  When the feature dimension is low or modest, {\sc
+     ahrb} is competitive in time and space complexities with other
+   \texttt{Julia} packages for recursive binning of particles into nested
+   cubes. Distinctively, {\sc ahrb} is capable of accommodating
+   higher-dimensional data sets without suffering from high-order or
+   exponential growth in memory usage with the increase in dimension.
+   We demonstrate the basic functionalities of {\sc ahrb} and some
+   extended ones, provide guaranteed time and space complexities, and
+   present execution times on benchmarking datasets.
+   %
+\end{abstract} 
+
+
+
+%
+%
+%
+ 
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\linewidth]{images/block-sparse-dataset.png}
+  \caption{%
+    {\sc ahrb} is able to accommodate high-dimensional feature point
+    datasets. The plots illustrate the {\sc ahrb} structure on a
+    dataset $X$ of $3,672$ particle points in a $5$ dimensional
+    space. The maximal division level $\ell_{\max}$ is set to $8$.
+    Each non-diagonal plot $(i,j)$, $i\neq j$, is the planar
+    projection of the $5$-dimensional particle cube-binning onto the
+    plane with axes $i$ and $j$, each plot $(i,i)$ is the linear
+    projection onto axis $i$, $1\leq i,j \leq 5$.  Any bin with more
+    than $p_{c}$ particles, $p_{c}=100$, is further divided up to
+    level $8$. Any bin above level $8$ with $p_c$ or fewer particles
+    is a leaf node of {\sc ahrb}. Any bin at level $8$ is a leaf
+    node. All leaf bins make a partition of the dataset $X$. The
+    distributions of leaf bins and non-leaf bins are shown in
+    \cref{fig:node-distributions-on-ahrb}.} %
+  \label{fig:ahrb-structures-illustration} 
+\end{figure} %
+
+
+
+\section{Particle binning for multi-resolution data analysis}
+\label{sec:introduction}
+
+%
+%
+%
+%
+%
+%
+%
+
+\subsection{Particle binning}
+\label{sec:problem-description}
+
+%
+
+Particle binning is a computation task fundamental to many downstream data
+processing and analysis applications across various domains.  Here, a {\em
+particle} refers to a spatial point or a feature vector in a
+multi-dimensional metric space. The feature dimension, i.e., the feature vector
+length, denoted by $d$, is not necessarily limited to low dimensions. We assume
+a dataset $X$ of $n$ particles in the same $d$-dimensional feature space
+$\mathbb{R}^d$. A particle binning process involves organizing, grouping, and
+indexing the particles into spatial regions, compartments, or bins by certain
+criteria. Typically, a particle binning process partitions the particles
+by recursively subdividing the finite spatial domain that tightly contains the
+$n$ particles, resulting in a tree hierarchy of particle bins or bin nodes as
+the data structure.  Each bin node on the tree has a definitive geometric shape
+and holds a specific number of particles. Different particle binning processes
+give rise to various kinds of
+trees~\cite{bayer1970,bentley1975a,guttman1984,beckmann1990,yianilos1993}  for
+particle partition and indexing, suitable for different types of subsequent
+computation tasks. A particle indexing tree of one kind has different
+characteristics from another kind, such as by the geometric shape of the bins,
+e.g., hyper-spheres or hyper-rectangular boxes, the leaf node distribution
+across the tree hierarchy, the population distribution across the subtrees, or
+other attributes.
+
+\vspace{3pt}
+
+%
+
+\subsection{AHRB objectives and properties}
+\label{sec:ahrb-objectives}
+
+The primary goal of {\sc ahrb} (pronounced as ``arb'', with a silent ``h'') is
+to support and facilitate multi-resolution analysis of particle-particle
+relations or interactions, especially for near-neighbor location or search at
+multiple spatial scales or for far-neighbor filtering. The bins of {\sc ahrb}
+are thereby chosen to be $d$-dimensional cubes, extending the quadtree and octree to a $d$-dimensional hierarchical data structure.
+%
+
+The basic tree structure of {\sc ahrb} is described as follows. At the top
+level, $\ell=0$, the root cube tightly contains all $n$ particles. For
+simplicity, the root cube is uniformly scaled to have a sidelength of $1$. The
+unit cube is subdivided into subcubes of sidelength $1/2$, and the particles
+are binned into the subcubes. The tree nodes at level $\ell=1$ represent the
+non-empty subcube bins. Any subcube bin with more than $p_{c}$ particles is
+further divided; any bin with $p_{c}$ articles or fewer becomes a leaf/terminal
+node at level $1$. This division process continues up to a cut-off level
+$\ell_c$ or terminates sooner. All nodes at the finest level are leaf/terminal
+nodes. The two partition parameters $p_{c}$ and $\ell_{c}$ are integers with the
+basic lower and upper bounds as follows,
+%
+\begin{equation}
+  \label{eq:ellc-pc-bounds}
+  1 < \ell_{c} = O(\log n),
+  \quad
+  1 < p_{c} < \sqrt{n}.
+\end{equation}
+%
+The particular values of $\ell_{c}$ and $p_{c}$ are determined by
+individual applications, and they may be refined internally by {\sc
+  ahrb}.  As $p_{c}$ serves as a threshold on the population of leaf
+bins above level $\ell_c$, the recursive partition not only
+establishes a hierarchy for geometric resolution at multiple levels
+but also effectively addresses and resolves the particle sparsity or
+density distribution at multiple levels. In this sense, the
+hierarchical binning is adaptive to the spatial distribution of the
+particle sparsity or density. We will introduce shortly the other
+adaptation aspects of {\sc ahrb} in response to the a priori
+uncertainty about the division depth, to certain dynamic changes in
+the particle dataset, as well as to locality improvements on specific
+memory hierarchy systems.
+
+
+
+%
+
+{\sc ahrb} has a few distinctive properties and provides extended
+functionalities.  Regardless of the dimensionality, the leaf bins of
+the {\sc ahrb} data structure form a partition of the particle set
+$X$.  The total number of leaf nodes is no greater than $n$; the total
+number of non-leaf nodes is no greater than $n/p_c$. The time
+complexity of {\sc ahrb} construction is $O(d \cdot n)$. The space complexity
+is $O(d\cdot n)$.
+%
+Unlike other existing Julia packages for cube-binning, {\sc ahrb} does
+not suffer from higher-order or exponential growth in memory usage as
+the dimension $d$ increases. See \cref{fig:ecp-single-block-performance}.
+%
+An additional development objective of {\sc ahrb} is to explore and exploit the
+inherent potential in parallel particle binning and utilize the parallel
+processing architectures, in both hardware and software, that are prevalent in
+modern computer systems.
+%
+In order to take full advantage of the {\sc ahrb} structure and properties for
+multi-resolution data analysis, {\sc ahrb} also provides efficient and valuable
+functions for locating neighbors in all dimensions, or selective dimensions,
+within various ranges.
+
+
+%
+ 
+%
+%
+%
+%
+
+\subsection{Multi-resolution analysis in high-dimensional feature
+  spaces}
+
+%
+%
+\begin{figure}
+%
+  \centering
+  \begin{minipage}{0.28\linewidth}
+    \includegraphics[width=\linewidth]
+    {images/scenarios/superpixel.png}
+    \subcaption{{\bf (a)}}
+    \vspace*{0.5em}
+    \includegraphics[width=\linewidth]
+    {images/scenarios/robotics.png}
+    \subcaption{{\bf (b)}}
+  \end{minipage}
+  %
+  \begin{minipage}{0.36\linewidth}
+    \includegraphics[width=\linewidth]
+    {images/scenarios/mnist-sgtsnepi.png}
+    \subcaption{{\bf (c)}}
+  \end{minipage}
+  %
+  \begin{minipage}{0.32\linewidth}
+    \includegraphics[width=\linewidth]
+    {images/scenarios/gene-cells-barcode.png}
+    \subcaption{{\bf (d)}}
+    \vspace*{0.5em}
+    \includegraphics[width=\linewidth]
+    {images/scenarios/nbody.png}
+    \subcaption{{\bf (e)}}
+  \end{minipage}
+  %
+  \vspace*{0.5em}
+  %
+  \caption{%
+    A few examples of downstream tasks, in different
+    areas of scientific study, that utilize or rely on
+    multi-resolution analysis of multi-dimensional feature data.
+    %
+    {\bf (a)} image segmentation by multiple pixel features into
+    super-pixels\cite{floros2022a};
+    %
+    {\bf (b)} robotic motion planning based on fused sensor data features
+    \cite{seiwald2021}; 
+    %
+    {\bf (c)} dimension reduction subject to near-neighbor preservation
+    ~\cite{roweis2000,tenenbaum2000,hinton2002,vandermaaten2008,vandermaaten2014,pitsianis2019,mcinnes2020};
+    %
+    {\bf (d)} biomarker identification or discovery from single-cell
+    gene expressions~\cite{zheng2017}\textsuperscript{1};
+    %
+    {\bf (e)} particle simulations in
+    astrophysics~\cite{barnes1986,greengard1987,carrier1988}.}
+  %
+  \label{fig:down-stream-tasks}    
+\end{figure}
+
+\footnotetext{Image: \href{https://scanpy-tutorials.readthedocs.io/en/latest/plotting/core.html}{https://scanpy-tutorials.readthedocs.io/en/latest/plotting/core.html}} %
+
+Multi-resolution analysis ({\sc mra}) is crucial to many important
+applications across various fields. The traditional {\sc mra} was
+mostly used in two-dimensional (2D) or three-dimensional (3D) ambient
+spaces. In modern applications, {\sc mra} has extensive and expanding
+use in higher dimensional feature spaces.
+%
+We illustrate in \cref{fig:down-stream-tasks} a few areas, among
+numerous others, where {\sc mra} plays an important role.
+%
+\begin{list}{$\circ$}{\leftmargin=5pt} 
+\item In image and signal processing, {\sc mra} is used in feature
+  space for image segmentation, object recognition, noise reduction or
+  removal, classification, or compression. See \cite{shi2000,deng2001unsupervised,liu2014,tatarchenko2017,pitsianis2019,
+    floros2022a}.  For example, a 2D image of $28\times 28$ pixels for
+  a handwritten digit can be represented by a histogram of oriented
+  gradients ({\sc hog}) feature of dimension $324$ in~\cref{fig:down-stream-tasks}.
+%
+\item In robotics planning and autonomous vehicle navigation, {\sc
+    mra} of fused sensor data (sensor features) is used for dynamic
+  environment mapping, path or trajectory tracking and planning,
+  obstacle or anomaly detection in short and long ranges, collision
+  prediction and avoidance, and decision-making for safe navigation~\cite{faverjon1984,khatib1987,hornung2013,seiwald2021}.
+  
+\item {\sc mra} is valuable to biomedical data analysis~\cite{vandermaaten2008,zheng2017,thetabulasapiensconsortium*2022}. It is
+  commonly used in MRI, EEG, CT, fMRI, and DTI for medical image
+  segmentation, neuronal connectivity, abnormality detection, and
+  diagnosis. It is applied to analyze gene expression data obtained
+  from microarray or RNA sequencing experiments to help identify
+  patterns and biomarkers and obtain insights into disease
+  mechanisms. It is also used in proteomics and metabolomics to
+  explore the interactions between proteins and metabolites
+\end{list}
+
+These {\sc mra} applications are common in higher feature dimensions,
+requiring accuracy control and assurance. {\sc ahrb} aims at
+facilitating {\sc mra} tasks in high-dimensional spaces. 
+
+
+%
+%
+%
+ 
+%
+
+%
+%
+%
+%
+%
+%
+\begin{figure*}[!hb]
+  %
+  \centering
+  \begin{tikzpicture}[remember picture]
+    \node[inner sep=0] (imageA) at (0,0) {%
+      \includegraphics[width=\linewidth]{images/radix-long/step1-1}%
+    };
+    \node[inner sep=0, below=0.2cm of imageA] (imageB) {%
+      \includegraphics[width=\linewidth]{images/radix-long/step2-1}%
+    };
+    \node[inner sep=0, below=0.2cm of imageB] (imageC) {%
+      \includegraphics[width=\linewidth]{images/radix-long/step3-1}%
+    };
+    \node[inner sep=0, below=0.2cm of imageC] (imageD) {%
+      \includegraphics[width=\linewidth]{images/radix-long/step3-2}%
+    };
+    
+    \node[anchor=north west, inner sep=0pt, yshift=8pt] at (imageA.south west) 
+      {\textbf{(a)}};
+    \node[anchor=north west, inner sep=0pt, yshift=8pt] at (imageB.south west) 
+      {\textbf{(b)}};
+    \node[anchor=north west, inner sep=0pt, yshift=8pt] at (imageC.south west) 
+      {\textbf{(c)}};
+    \node[anchor=north west, inner sep=0pt, yshift=8pt] at (imageD.south west) 
+      {\textbf{(d)}};
+  \end{tikzpicture}
+  %
+  \vspace*{0.5em}
+  %
+  \caption{Pictorial description of the ECP operations in {\sc ahrb}
+    construction.
+    %
+    {\bf (a)} The Morton code matrix with $n=|X|$ columns, column $j$
+    is the Morten code of $\ell_c$ words for particle $j$, each word
+    has $d$-bits, one bit per dimension.  
+    %
+    {\bf (b)} The number of bins (non-empty cubes)
+    and the bin boundaries at level $1$ are determined by the particle
+    counting process. The particles in the same bin have the same word
+    prefix in their Morton codes. In the depiction, $d=5$. 
+    %
+    {\bf (c)} Particle permutation. Particles are relocated in memory to
+    the bins.
+    %
+    {\bf (d)} The ECP process is applied at level $2$ to each and
+    every bin at level $1$, and recursively applied to the bins at the
+    subsequent finer levels. 
+    %
+    {\sc Remarks.} The subplots also depict the dependency of
+    the bin division at level $\ell>1$ on the previous level and the
+    (non-uniform) concurrency in the ECP options among the non-empty
+    bins at each level.}
+    \label{fig:ecp-depiction}
+  \end{figure*} %
+
+%
+%
+%
+%
+%
+
+\subsection{Relevant Julia packages}
+\label{sec:existing-works}
+
+There are several existing Julia packages for particle binning.  Those
+based on first-order statistical approximations tend to use
+non-cubical bins.\footnote{%
+  \href{https://github.com/JuliaGeometry/OctTrees.jl}{https://github.com/JuliaGeometry/OctTrees.jl},\\
+  \href{https://github.com/rdeits/RegionTrees.jl}{https://github.com/rdeits/RegionTrees.jl},\\
+  \href{https://github.com/alexhad6/ParallelBarnesHut.jl}{https://github.com/alexhad6/ParallelBarnesHut.jl},\\
+  \href{https://github.com/krcools/CollisionDetection.jl}{https://github.com/krcools/CollisionDetection.jl},\\
+  \href{https://github.com/alyst/SpatialIndexing.jl}{https://github.com/alyst/SpatialIndexing.jl}
+} The notable structures using cube bins for multi-resolution analysis
+and approximation are the quad trees and oct trees, they are
+explicitly for 2D or 3D particles. Existing extensions of cube binning
+to higher-dimensional feature spaces tend to have full $d$-dimensional
+trees, perhaps, for the easy of indexing to the bins, including the
+empty bins. The indexing cost in memory usage grows sharply, or even
+exponentially, with the increase in dimension, thereby limiting the
+feature dimension implicitly.
+
+%
+%
+%
+%
+%
+%
+%
+
+\begin{figure}
+  \centering
+  %
+  \hspace{-6pt}  
+  \includegraphics[width=0.24\linewidth]
+  {images/other-trees/kd-tree-new.pdf}
+  %
+  \hspace{6pt} 
+  \includegraphics[width=0.27\linewidth]
+  {images/other-trees/r-tree.png}
+  %
+  \hspace{2pt} 
+  \includegraphics[width=0.27\linewidth]
+  {images/manifold-embedding/swiss-roll-no-box.png}
+  %
+  \caption{Three types of tree structures with rectangle bins,
+    besides other trees with different bin shapes, for feature
+    point binning to facilitate various downstream applications.
+    %
+    {\bf Left:} kd-tree where every non-leaf node is associated with
+    one of the $d$-dimensions and  a pivot point for splitting, i.e., a
+    splitting hyperplane~\cite{bentley1975a}.
+    %
+    {\bf Middle:} R-tree
+    with rectangle bins of variable side lengths, all leaf bins are
+    at the same level~\cite{guttman1984,beckmann1990},
+    similar to B-trees~\cite{bayer1970}.
+    %
+    {\bf Right:} Octree with cube bins, each non-leaf node has upto
+    $8$ child nodes, all cube bins at the same level are of the same
+    size, the leaf bins are not necessarily at the same
+    level~\cite{freeman1985}. }
+\end{figure} %
+
+ 
+
+\section{AHRB method} 
+\label{sec:method} 
+
+
+%
+%
+%
+%
+%
+%
+%
+
+
+In this section, we introduce the particle binning method that equips
+{\sc ahrb} with the distinctive properties briefly described in
+\cref{sec:ahrb-objectives}. There are three conceptually integral
+components: encoding, counting, and permuting (ECP). Each particle is
+mapped to a binary code. The code length can be made uniformly fixed
+or variable across the particles, which are the two extreme cases of
+the {\sc ahrb} encoding scheme with variable block length. For
+sequential algorithm implementation, we introduce two major ways to
+organize the E-operations, C-operations, and P-operations. 
+%
+For parallel algorithm implementation, there are more options to
+coordinate and schedule the ECP operations. In the current version,
+{\sc ahrb} implements specific parallel patterns with multi-thread
+processing using Julia's dynamic scheduler on shared-memory computers.
+{\sc ahrb} uses the same memory allocation and management scheme for
+both sequential and parallel executions. 
+%
+
+
+\subsection{Block ECP}
+\label{sec:ECP-description}
+
+\vspace{3pt} We describe the ECP components in detail and provide a
+pictorial description in \cref{fig:ecp-depiction}.
+
+\vspace{2pt}
+
+\vspace{2pt} {\bf Encoding.} By the spatial domain division, each cube
+node at level $1$ is associated with a $d$-bit geospatial index,
+specifying the cube location with respect to the center of the unit
+box containing all $n$ particles. Similarly, each cube node at level
+$\ell$ has a geospatial index with $d\ell$-bits. The dyadic division
+of the particle domain leads directly to the binary quantization of
+the particle coordinates in the feature space $\mathbb{R}^d$. Assume
+temporarily that the division of the spatial domain terminates at a
+cut-off level $\ell_c$ and that each coordinate of a particle is
+quantized to $\ell_c$ bits. Then, each particle
+$x = (x_1,x_2,\cdots, x_d)^{\rm T} $ in the data set
+$X \subset \mathbb{R}^{d}$ is mapped to a $d\times \ell_c$ {\em
+  dimension-and-depth} bit array.  The leading column of the
+dimension-and-depth bit array for particle $x$ is comprised of the
+leading bits in all dimensions, and column-$\ell$ composed of the
+$\ell$-th bits in all dimensions, $\ell= 1,\cdots, \ell_c$. We refer
+to column $\ell$ as the $\ell$-th codeword for particle $x$.  We refer
+to the sequence of $\ell_c$ codewords as the Morton code of particle
+$x$~\cite{morton1966}. See (a) in \ref{fig:ecp-depiction}.
+%
+The prefix with the first word of the Morton code for particle $x$ is
+the geospatial index to the cube-bin node at level $1$ the particle
+$x$ resides. If the cube bin does not have more than $p_c$ particles,
+the bin node is a leaf node. Otherwise, the prefix with the first two
+words of the Morton code for particle $x$ is the geospatial index to
+the cube-bin node $x$ resides at level $\ell=2$, and so on and so
+forth. This binning methodology is essentially the radix sort by the
+most significant bits in all dimensions~\cite{cormen2022,obeya2019}.
+
+
+To eliminate the problem with rapid growth in memory usage with the
+increase in dimension, {\em the {\sc ahrb} structure does not keep or
+  register any empty cubes.}  It provides instead economical mappings
+between the geospatial indices and the (memory) address indices for
+the tree nodes. The change guarantees that the memory space
+requirement is well bounded by a small multiple of $n$ memory units,
+regardless of the dimension. This fundamentally enables {\sc ahrb} to
+accommodate high-dimensional datasets and sets {\sc ahrb} apart from
+other existing hierarchical structures for cube-binning.
+%
+
+\vspace{2pt} {\bf Counting.} At each division level $\ell$, the number
+of particles with the same geospatial prefix is counted. By the
+counting, a cube at level $\ell$ is either empty or non-empty. Only
+non-empty cubes are registered as the {\sc ahrb} tree nodes. Any
+non-empty cube is categorized as either sparse if it has at most
+$p_{c}$ particles or dense if it has more than $p_c$ particles. Any
+dense cube undergoes further division until reaching level
+$\ell_{c}$. The total amount of memory space, denoted as
+$\mathcal{M}$, for all tree nodes is known by the counting.  We
+allocate $(1+\beta) \mathcal{M}$ memory space at once, where $\beta$
+is a non-negative prescribed number.  When $\beta=0$, the memory space
+is tight for the current data set. When $\beta >0$, we allocate
+$\beta \mathcal{M}$ additional buffer space in order to accommodate
+new particles into the same bins. The rate of such changes is
+anticipated by the parameter $\beta$. Once the memory is allocated,
+the boundaries for the leaf nodes, and non-leaf nodes, can be easily
+determined by the bin counts and the buffering factor $(1+\beta)$. By
+this memory layout scheme, all nodes at any subtree are located in a
+consecutive block of the allocated memory space. The mapping from the
+geospatial indices of the tree nodes and to the memory address indices
+is thus established, and so is the reverse mapping. Each mapping takes
+only a vector of length equal to the total number of tree nodes, no
+greater than $(1+1/p_{c})n$. We depict in (b) of
+\cref{fig:ecp-depiction} the counting at level 1 and show the bin
+boundaries at the bottom line with $d=5$ and $\beta=0$.
+
+\vspace{2pt}{\bf Permuting.} {\sc ahrb} relocates the particles from
+their ordering given at input to the bin locations in the memory
+space. In terms of functionality, {\sc ahrb} not only provides the
+particle index mapping but also renders the particles in the bin
+order, such that the particles in any subtree are in a consecutive
+memory block. We depict in (c) of~\cref{fig:ecp-depiction} the
+particle permutation at level 1. The process of counting and permuting
+is equivalent to the counting sort~\cite{knuth1997}.
+
+
+
+%
+%
+%
+ 
+%
+%
+%
+%
+%
+
+\begin{algorithm}[h] 
+  %
+  \caption{\small%
+    {\sc ahrb\_ecp}
+    \\ \phantom{make space}
+    (the basic ECP module for {\sc ahrb} construction) }
+  %
+  \label{alg:basic-ECP} 
+  %
+  \small
+  \SetAlgoLined
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  \SetKwRepeat{Do}{do}{while}
+  \SetKwFunction{filter}{filter}
+  %
+  {\rm Input:\ }
+  $X$,\, $d$, \,  $n$   
+   \, \phantom{x}
+  // {\footnotesize $X$ is a set of $n$ particles in $\mathbb{R}^d$} 
+  \\
+  \phantom{Input:\ }
+  $\ell_c$, \, $p_c$\,
+  \phantom{xxx}
+  // {\footnotesize level cutoff $\ell_c\geq 1$;
+                    population cutoff $p_c >1$ } 
+  \\
+ {\rm Output:}\phantom{xx}
+  $ T = \mbox{\sc ahrb\_ecp}(X,\ell_c, p_c)$
+  \\ \phantom{xxx}
+  // {\footnotesize {\sc ahrb} tree with upto $\ell_c$ levels of bin-nodes
+    below the root} 
+  \\
+  $Q  \gets \mbox{\sc encoding}(X,\ell_c)$ 
+  \\
+  $T.\mbox{\rm bin\textunderscore{}boundaries} \gets \mbox{\sc counting}(Q)$ 
+  \\ 
+  $ T.\mbox{\rm leafbin\textunderscore{}particles}
+  \gets \mbox{\sc permuting}(X,T.\mbox{\rm bin\textunderscore{}boundaries}) $
+%
+%
+\end{algorithm}
+ 
+%
+%
+%
+%
+%
+%
+%
+
+
+\vspace{2pt}
+%
+We are in a position to describe {\em Block ECP.} The ECP operations
+described above can proceed at operational granularity settings. At
+the one extreme, $\ell_c=\ell_{\max}$, where $\ell_{\max}$ is
+prescibed by the user. At the other extreme case, one can set $\ell_c
+=1$, one level at a time, and apply the same process to the particle
+set in each of the dense bins recursively.  The particle set in a
+(sparse) leaf bin node at level $1$ is no further partitioned. The
+effective Morton code for a leaf bin has one word in $d$ bits, one
+bit per dimension. Similarly, the particle set in a leaf bin node at
+level $2$ has the effective $2$-words Morton codes, and so on.  This
+results in variable code length in the unit of words, ranging from $1$
+word to $\ell_{\max}$ words. Such variable-code-length encoding scheme
+adapts to and reflects the spatial variation of the particle density
+of dataset $X$ in a high-dimensional feature space.
+%
+
+There are multiple advantages to organizing the ECP operations in block-batched
+options. Each block ECP batch involves $\ell_c$ levels using the
+corresponding $\ell_c$ words in the Morton codes, $\ell_c$ is an internal block
+parameter of {\sc ahrb}, $1 \leq \ell_c \leq \ell_{\max}$.
+%
+When $\ell_c>1$, {\sc ahrb} can leverage fast vector operations
+supported on modern computer architectures.
+%
+Given the a priori uncertainty about the spatial variation in the data
+density/sparsity, the prescribed hyperparameter $\ell_{\max}$ may be large. It
+is therefore beneficial to set $\ell_{c}$ as a small number so that the encoding
+cost is determined primarily by the data size, data variation, and the parameter
+$\ell_{c}$, eliminating the potential problem of overestimation by
+$\ell_{\max}$.
+%
+An additional benefit of block ECP is in data locality improvement. Modern
+memory systems are organized in multiple cache levels, which favor algorithms
+with spatial and temporal localities at multiple levels in data access and
+movements. In \cite{floros2019}, it is shown that for data permutation
+alone, permutation at multiple block stages allows one to achieve better data
+locality and time performance on any specific memory system, without being
+confined to permuting all data at once or permuting the data at an unnecessarily
+finer granularity. The concept and technique of block data permutation are
+seamlessly incoorporated in {\sc ahrb}.
+%
+
+In summary, the block ECP method encompasses all cases with $1\leq
+\ell_{c} \leq \ell_{\max}$, enabling adaptation to the sparse patterns
+in datasets, as well as to vector operations and case hierarchies on
+modern computer systems.
+%
+We outline in \cref{alg:basic-ECP} and \cref{alg:block-ECP} the basic {\sc ecp}
+module and the block {\sc ecp} algorithm, respectively.  For simplicity and
+clarity, we treat $\ell_c$ as a constant in \cref{alg:block-ECP}.  The tree
+depth increases by up to $\ell_c$ levels at each block {\sc ecp} step, and the
+code lengths for the new bin nodes increase proportionally. The memory
+requirement increases as well for the new nodes. We use a pair of ping-pong
+buffers for memory management in adaption to the tree growth. We have omitted
+such nuance details in the algorithm outlines.
+
+%
+%
+%
+ 
+%
+%
+%
+
+\begin{figure}
+  \centering
+  \includegraphics[width=.9\linewidth]
+  {images/ahrb-performance-ecp-single-block.pdf}
+  \vspace*{0.5em}
+  \caption{ %
+    The sequential execution times of a single block of ECP operations
+    with block size $\ell_{c}=3$. The time plot reflects the time
+    complexity of \cref{alg:basic-ECP} over the range of data size $n$
+    (the number of particles) from $1$ million to $10$ millions and
+    the range of $d$ (the dimensionality) from $2$ to $42$. The
+    execution times are measured by seconds on the wall clock,
+    displayed along the z-axis.  %
+    The experiment is carried out on an \texttt{Intel(R) Xeon(R) Gold 6226 CPU @ 2.70GHz}. %
+    \textbf{Observation.} The execution time of the ECP operations
+    scales linearly with dataset size $n$ and linearly with dimension
+    $d$.  }
+  %
+  \label{fig:ecp-single-block-performance}
+\end{figure} %
+
+
+%
+%
+%
+%
+
+\begin{algorithm}[h] 
+  %
+  \caption{\small%
+    AHRB\_BECP for {\sc ahrb} construction }
+  \label{alg:block-ECP} 
+  %
+  \small
+  \SetAlgoLined
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  \SetKwRepeat{Do}{do}{while}
+  \SetKwFunction{filter}{filter}
+  %
+  {\rm Input:\ }
+  $X$,\, $d$, \,  $n$   
+   \, \phantom{x}
+  // {\footnotesize $X$ is a set of $n$ particles in $\mathbb{R}^d$} 
+  \\
+  \phantom{xx}
+  $\ell_{\max} $, \, $p_c$\,
+  \phantom{x}
+  // {\footnotesize maximum level $\ell_{\max}\!>\!1 $;
+                    population cutoff $p_c\! >\!1$ } 
+  \\
+ {\rm Output:}\phantom{xx}
+  $ T = \mbox{\sc ahrb\_bepc}(X,\ell_{\max}, p_c)$
+  \\ \phantom{xxx}
+  // {\footnotesize {\sc ahrb} tree with up tp $\ell_{\max}$ levels of bin-nodes
+    below the root} 
+  \\
+  {\rm Initialization:} $T \gets \mbox{\rm root\_bin}(X) $
+  \phantom{xx} // the root bin at level $0$ 
+  \\
+  {\rm Internal parameter:} $\ell_c$, $1\leq \ell_c\leq \ell_{\max}$
+  \\
+  \For { $ \ell = 0:\ell_c: \ell_{\max}-1$ } 
+  { %
+    \For { {\rm each dense bin$_j$ at level $\ell$ of $T$}  }
+    { %
+    %
+    %
+    $ T.\mbox{\rm bin}(\ell,j)  \gets 
+    \mbox{\sc ahrb\_eps}( X(\mbox{\rm bin}_j), \ell_c, p_c) $  
+    } %
+  } %
+%
+%
+\end{algorithm}
+ 
+\subsection{Empirical observation \& evaluation}
+\label{sec:empirical-evaluation}
+
+%
+%
+%
+%
+%
+
+We present empirical observation and evaluation of the {\sc ahrb}
+method in several figures.
+%
+\begin{inparaenum}[(a)]
+%
+\item In \cref{fig:ahrb-structures-illustration} we illustrate how
+{\sc ahrb} can accommodate datasets in higher dimensional
+feature spaces.
+%
+\item In \cref{fig:ecp-single-block-performance}, we demonstrate how
+  {\sc ahrb} effortlessly surpasses dimension $40$, where other
+  cube-binning hierarchies face challenges or fail to proceed. We
+  observed that the execution time of \cref{alg:basic-ECP} scales
+  linearly with the dimension $d$ and linearly with the dataset size
+  $n$, consistent with our complexity analysis.
+  %
+\item In \cref{fig:node-distributions-on-ahrb}, {\sc ahrb} reveals the
+  spatial variation in particle density/sparsity in terms of leaf-bin
+  distribution and non-leaf-bin distribution across all levels of the
+  {\sc ahrb} tree. These distributions are unknown a priori.
+  %
+\item It is illustrated in \cref{fig:block-ecp-vs-fixed-length} that the block ECP with
+  variable code length outperforms the ECP with the fixed uniform code
+  length on a dataset with non-uniformly distributed particles. Even
+  on datasets with uniformly distributed particles, the former tends
+  to terminate earlier and faster than what is expected based on a
+  conservative estimation.
+\end{inparaenum}
+
+
+%
+\vspace{6pt}
+%
+%
+%
+%
+%
+\begin{figure}
+  %
+  \includegraphics[width=0.45\textwidth]{images/tree_hist_boxes}
+  \caption{%
+    The distribution of leaf nodes (in blue) and the distribution of non-leaf
+    nodes (in orange) across multiple levels of the {\sc ahrb} structure are
+    typically non-uniform. The distribution is shown on a logarithmic scale. For
+    the illustrated case, particles are in a $5$-dimensional space, they are
+    divided up to $\ell_{\max}$ levels, $\ell_{\max} = 8$, the same as in
+    \cref{fig:ahrb-structures-illustration}.
+    %
+    The number of leaf cube-bins is $4{,}914$, and 
+    the number of non-leaf cube-bins is $167$.
+    %
+    The leaf-node distribution in blue shows the percentage of the
+    leaf nodes at each level $\ell$ among all leaf nodes,
+    $1\leq \ell\leq 8$. The non-leaf-node distribution in red
+    shows the percentages similarly.
+    %
+    The majority of Morton codes for the particles
+    have $4$ or fewer effective words instead of $8$ words.
+    %
+    %
+    %
+    %
+  }
+  \label{fig:node-distributions-on-ahrb}
+\end{figure} %
+
+
+%
+%
+%
+%
+%
+%
+
+\begin{figure}[b]
+  \centering
+  \includegraphics[width=.85\linewidth]
+  {images/block-ecp-vs-fixed-length.pdf}
+  \caption{ %
+    Among other advantages, the block ECP of variable code length (in blue) is faster than the ECP of uniform code length (in red).  In the set of experiments for this demonstration, the datasets are in a $5$-dimensional space, and the number of data points ranges from $400\!$ K(K $=2^{10}$) to $1.6\!$ M (M=$2^{20}$). The leaf and non-leaf box distributions follow those in figure \cref{fig:node-distributions-on-ahrb}. The population cutoff parameter $p_c$ is a small portion of $n$ and varies from $128$ for small datasets to $512$ for large datasets. The maximal cutoff level is $\ell_{\max}=8$, and the internal block parameter $\ell_{c}$ for the block version is $\ell_c=4$. The experiment is carried out on an \texttt{Intel(R) Xeon(R) Gold 6226 CPU @ 2.70GHz}. {\bf Remark.} In two block steps, the block-ECP version of adaptive nonuniform code depth already outperforms the version with fixed uniform code length by about $1.3$ times. 
+    %
+  }
+  \label{fig:block-ecp-vs-fixed-length}
+\end{figure} %
+
+
+ 
+%
+%
+%
+
+
+\subsection{Parallel scheduling}
+
+%
+%
+%
+%
+%
+%
+
+%
+%
+
+In the aspect of ECP operations in parallel, the current version of {\sc ahrb}
+utilizes multi-threads on shared-memory computer systems. There are different
+ways to explore and exploit the concurrency in the ECP operations, subject to
+the dependency from the top and coarse level to lower and finer levels. One must
+also take into account parallel execution overhead.
+
+For ECP operations in each block batch, there is concurrency among the
+dense bins, as specified in line $8$ of \cref{alg:block-ECP} and
+depicted in \cref{fig:ecp-depiction}. The E-C-P modules in
+\cref{alg:basic-ECP} may be invoked sequentially, exploring the
+concurrency within each module. Alternatively, one may interleave the
+E-C-P operations, exploiting their common concurrency patterns. An
+earlier version of {\sc ahrb} used the latter, while the current
+version deploys the former strategy. The modular structure makes
+performance tuning simple and provides better readability for program
+maintenance and translation.
+
+The parallel scheduling of {\sc ahrb} is inherently dynamic due to the
+non-uniform variation of density-sparsity patterns. We have established internal
+parameters to control thread spawning. The dynamic scheduler of \texttt{Julia
+v1.8+} plays an instrumental role in the parallel version of {\sc ahrb}.
+
+
+%
+%
+%
+ 
+
+
+\section{Use case demos}
+\label{sec:use-cases}
+
+%
+%
+%
+%
+
+%
+%
+
+\subsection{User-defined node annotation}
+\label{sec:nbody-simulation}
+
+%
+%
+%
+%
+%
+%
+%
+%
+
+{\sc ahrb} supports user-defined node annotation in order to facilitate and
+streamline the integration of the {\sc ahrb} structure and application-specific
+downstream information or structures. This feature enables efficient and stable
+type inference and data alignment in memory at precompilation.
+%
+We demonstrate this capability of {\sc ahrb} in snippet~\ref{lst:annotation}. We
+show how to annotate the {\sc ahrb} nodes recursively with the simple example of
+calculating and saving the mass and mass center of the particles in each tree
+node. In the snippet, the functions {\tt setcontext} and {\tt getcontext} are
+accessor functions provided by {\sc ahrb}. In the supplementary
+material,\footnote{\scriptsize \href{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/examples/barneshut.jl}{https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/examples/barneshut.jl}}
+we demonstrate a dynamic particle simulation via this simple integration
+interface.
+
+
+\begin{myjulia}{%
+    minted options={fontsize=\footnotesize},
+    title={Snippet \thetcbcounter: User-defined node annotation},
+    label=lst:annotation}
+getmass(node::SpatialTree) = getcontext(node)[:mass]
+getcom(node::SpatialTree)  = getcontext(node)[:com]
+
+function populate_tree_ctx!(tree, dim)
+  foreach(PostOrderDFS(tree)) do node
+    com = zeros(dim); mass = 0.0;
+    if isleaf(node)
+      vm = masses[ tree.info.perm[range(node)] ]
+      com  = points(node) * vm
+      mass = sum( vm )    
+    else
+      for child in children(node)
+        com .+= getcom(child) .* getmass(child)
+        mass += getmass(child)
+      end
+    end
+    com ./= mass
+    setcontext!(node, (; com = com, mass = mass))
+  end
+end
+\end{myjulia}  
+
+ 
+\subsection{Neighbor bins across multiple levels}
+\label{sec:neighbor-bins}
+
+%
+%
+%
+
+{\sc ahrb} provides a function for efficient locating and rendering of
+all leaf bins that are within or intersect with a specified range
+$\rho$ from a query point. The leaf bins are not necessarily at the
+same spatial resolution levels. In the extreme case, the range is
+large enough to cover all particles, all leaf bins are rendered.  In
+addition, the leaf bins are rendered in an interaction list ordered
+from closer distance to farther distance. Such range search is
+fundamental to multi-resolution interaction analysis.  In the special
+case that the range search is for the search of the $k$-nearsest
+neighbors, the range search can be terminated as soon as the
+$k$-nearest neighbors are located.  In the snippet~\ref{lst:interaction}, the predicate
+function \texttt{filterout} returns \texttt{true} if the target box is
+beyond the $\rho$-range of the query.
+
+\begin{myjulia}{%
+    minted options={fontsize=\footnotesize},
+    title={Snippet \thetcbcounter: Leaf-bins within a query range},label=lst:interaction}
+# ahrb construction, with additional node context 
+tree = ahrb(X, maxL, maxP; 
+  ctxtype = Vector{Tuple{Int64,Float64}})
+
+# initialize the bin-node context 
+foreach(PreOrderDFS(tree)) do node
+  setcontext!(node, Tuple{Int64,Float64}[])
+end
+
+# annotate target leaf bins within rho-distance  
+processpair!(t, s) =
+  push!(getcontext(t),(nindex(s), dist(t,s)))
+
+query = first(Leaves(tree))
+rho = 1 / 8       # a particular rho value 
+
+# predicate
+filterout(t, s) = dist(t,s) > rho
+
+# recursively locate target leaf bins
+recursivetraversal(query, tree,
+  filterout, processpair!) 
+\end{myjulia}
+
+The tree traversal by \texttt{recursivetraversal} for locating the neighbor bins
+within a range has minimal complexity with cube binning, according to the
+analysis in~\cite{iliopoulos2020}.
+
+
+%
+%
+%
+ 
+%
+%
+%
+
+ 
+
+%
+%
+%
+
+%
+
+%
+
+%
+%
+
+\bibliographystyle{juliacon}
+\bibliography{ref.bib}
+ 
+\end{document}
+ 
