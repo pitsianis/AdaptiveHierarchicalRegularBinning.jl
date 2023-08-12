@@ -3,7 +3,7 @@ using Test, AdaptiveHierarchicalRegularBinning, AbstractTrees
 
 function test_dense_nodes(n, d, L, maxP)
   X = randn(d, n)
-  tree = ahrb!(X, L, maxP; QT=UInt128)
+  tree = ahrb(X, L, maxP; QT=UInt128)
 
   @test all( i==n.nidx for (i,n) in enumerate(tree.info.nodes) if n.nidx != 0 )
   @test isperm(map(nindex, PostOrderDFS(tree)))
