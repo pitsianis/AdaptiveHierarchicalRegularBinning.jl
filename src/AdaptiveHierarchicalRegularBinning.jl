@@ -66,12 +66,9 @@ Generate an adaptive hierarchical regular binning tree structure.
 The generated tree structure.
 
 # Example
-```jldoctest
+```jldoctest; filter = [r".*nodes,.*leaves and max depth.*"]
 julia> V = rand(6, 10_000);
 
-# Generate a tree structure for a matrix of data points `V` 
-# with a maximum depth of 5 and a maximum of 10 points per 
-# leaf node.
 julia> tree = ahrb(V, 5, 10)
 SpatialTree: 
 Matrix{Float64}(6,10000) points
