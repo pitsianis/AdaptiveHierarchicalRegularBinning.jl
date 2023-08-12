@@ -1,2 +1,9 @@
 /Manifest.toml
 /docs/build/
+.CondaPkg/
+.vscode/
+/examples/data/experiments
+*.mem
+.VSCodeCounter
+.DS_Store
+/examples/Manifest.toml
