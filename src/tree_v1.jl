@@ -93,10 +93,10 @@ nindex(n::NodeInfo) = n.nidx
 pindex(n::NodeInfo) = n.pidx
 
 function Base.show(io::IO, node::NodeInfo)
-  print(io,
+  print(io, 
   """
   NodeInfo:
-  node $(Int(node.nidx)), parent $(Int(node.pidx)), depth $(node.dpt)
+  node $(Int(node.nidx)), parent $(Int(node.pidx)), depth $(node.dpt) 
   representing $(Int(node.lo)):$(Int(node.hi)) points
   """)
 end
@@ -150,9 +150,9 @@ end
 getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
 
 function Base.show(io::IO, tree::SpatialTree)
-  print(io,
+  print(io, 
   """
-  SpatialTree:
+  SpatialTree: 
   $(typeof(tree.info.points))($(size(points(tree))[1]),$(Int(size(points(tree))[2]))) points
   $(treesize(tree)) nodes, $(leafcount(tree)) leaves and max depth $(treeheight(tree))
   """)
@@ -240,9 +240,9 @@ Creates a tree representation of a Morton Array.
   - `dims`: Leading dimension
 """
 function make_tree(V, R, I, maxdpt, smlth, bitlen, scale, offset; dims)
-  # _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
-  nodes_len = 2*length(R) # TODO: this is wasteful
-  nodes    = [NodeInfo(0,0,0,0,0) for _ in 1:nodes_len]
+  _, nodes_len = count_nodes(R, 1, length(R), maxdpt, 0, bitlen)
+  # nodes_len = 2*length(R) # TODO: this is wasteful
+  nodes    = Vector{NodeInfo}(undef, nodes_len)
   children = [UInt[] for _ in 1:nodes_len]
   context = Any[nothing for _ in 1:nodes_len]
 
