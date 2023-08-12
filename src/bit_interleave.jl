@@ -2,52 +2,20 @@ using BitOperations
 
 # SECTION: Precompilation dependencies
 function has_pdep()
-  # NOTE: https://discourse.julialang.org/t/bit-manipulation-instruction-set/5368/9
-  CPUInfo = zeros(Int32, 4)
-  ccall(:jl_cpuidex, Cvoid, (Ptr{Cint}, Cint, Cint), CPUInfo, 7, 0)
-  return CPUInfo[2] & 0x100 != 0
+  try
+    # NOTE: https://discourse.julialang.org/t/bit-manipulation-instruction-set/5368/9
+    CPUInfo = zeros(Int32, 4)
+    ccall(:jl_cpuidex, Cvoid, (Ptr{Cint}, Cint, Cint), CPUInfo, 7, 0)
+    return CPUInfo[2] & 0x100 != 0
+  catch
+    return false
+  end
 end
 # !SECTION
 
-# SECTION: Method Selectors
-abstract type InterleaveMethod end
-abstract type Brute <: InterleaveMethod end
-abstract type Pdep <: InterleaveMethod end
-# !SECTION
-
 # SECTION: bit_space
-"""
-$(FUNCTIONNAME)(M, w, n)
-
-Evenly space out bits.
-
-# Arguments
-- `M`: The method to space out the bits
-- `w`: The word to space out
-- `n`: The amount of padding
-
-# Examples
-```julia-repl
-julia> bit_space(Brute, 0x00ABCDEF, 0) |> bitstring
-"00000000101010111100110111101111"
-
-julia> bit_space(Brute, 0x00ABCDEF, 1) |> bitstring
-"10100000101000101010100010101010"
-
-julia> bit_space(Brute, 0x00ABCDEF, 2) |> bitstring
-"00000100100100100000100100100100"
-
-julia> bit_space(Brute, 0x00ABCDEF, 3) |> bitstring
-"10001000100000001000100010001000"
-
-julia> bit_space(Pdep, 0x00ABCDEF, 2) == bit_space(Brute, 0x00ABCDEF, 2)
-true
-```
-"""
-bit_space(M::Type{<:InterleaveMethod}, w::Unsigned, n::Integer) = throw("$bit_space is not implemented for method $M")
-
 # SECTION: Brute
-function bit_space(::Type{Brute}, w::Unsigned, n::Integer)
+function bit_space_brute(w::Unsigned, n::Integer)
   # TODO: Dynamic type expansion?
   #       bsizeof(ret) >= L*bsizeof(w)
   mapper(i) = ((w >> i) & 0x1) << (i * (n + 1))
@@ -58,16 +26,43 @@ end
 
 # SECTION: pdep
 # Conversions for small UInts
-bit_space(::Type{Pdep}, w::UInt8,  n::Integer) = convert(UInt8,  bit_space(Pdep, convert(UInt32, w), n) & 0xFF)
-bit_space(::Type{Pdep}, w::UInt16, n::Integer) = convert(UInt16, bit_space(Pdep, convert(UInt32, w), n) & 0xFFFF)
+bit_space_pdep(w::T, n::Integer) where {T <: Union{UInt8, UInt16}} =
+    convert(UInt32, w) |>
+    (x) -> bit_space_pdep(x, n) |>
+    (x) -> convert(T, x & typemax(T))
 
-# Imlementations for Pdep
-bit_space(::Type{Pdep}, w::UInt32, n::Integer) = pdep(w, bit_space_mask(UInt32, n))
-bit_space(::Type{Pdep}, w::UInt64, n::Integer) = pdep(w, bit_space_mask(UInt64, n))
+# Implementations for Pdep
+bit_space_pdep(w::T, n::Integer) where {T <: Union{UInt32, UInt64}} = pdep(w, bit_space_mask(T, n))
 
 # Generic fallback (mainly for UInt128)
-bit_space(::Type{Pdep}, w::Unsigned, n::Integer) = bit_space(Brute, w, n)
+bit_space_pdep(w::Unsigned, n::Integer) = bit_space_brute(w, n)
 # !SECTION
+
+"""
+$(FUNCTIONNAME)(w, n)
+
+Evenly space out bits.
+
+# Arguments
+- `w`: The word to space out
+- `n`: The amount of padding
+
+# Examples
+```julia-repl
+julia> $(FUNCTIONNAME)(0x00ABCDEF, 0) |> bitstring
+"00000000101010111100110111101111"
+
+julia> $(FUNCTIONNAME)(0x00ABCDEF, 1) |> bitstring
+"10100000101000101010100010101010"
+
+julia> $(FUNCTIONNAME)(0x00ABCDEF, 2) |> bitstring
+"00000100100100100000100100100100"
+
+julia> $(FUNCTIONNAME)(0x00ABCDEF, 3) |> bitstring
+"10001000100000001000100010001000"
+```
+"""
+bit_space(w::Unsigned, n::Integer) = @static(has_pdep() ? bit_space_pdep(w, n) : bit_space_brute(w, n))
 # !SECTION
 
 
@@ -75,12 +70,11 @@ bit_space(::Type{Pdep}, w::Unsigned, n::Integer) = bit_space(Brute, w, n)
 # TODO: Handle known-sized iterators
 # TODO: Memoization
 """
-    $(FUNCTIONNAME)([M, ]W)
+    $(FUNCTIONNAME)(W)
 
 Interleaves an array of unsigned integers.
 
 # Arguments
-- `M`: The method with which to interleave
 - `W`: The array
 
 # Examples
@@ -98,7 +92,7 @@ julia> $(FUNCTIONNAME)([0x0001, 0x0080]) |> bitstring
 "1000000000000001"
 ```
 """
-function bit_interleave(M::Type{<:InterleaveMethod}, W::AbstractVector{<:Unsigned})
+function bit_interleave(W::AbstractVector{<:Unsigned})
   # TODO: W does not have to be AbstractVector (Any iterator with constant eltype and known size is ok)
   L = length(W)
 
@@ -108,31 +102,12 @@ function bit_interleave(M::Type{<:InterleaveMethod}, W::AbstractVector{<:Unsigne
   # TODO: mapreduce is slower than this implementation
   ret = zero(eltype(W))
   for w in Iterators.reverse(W)
-    ret = (ret << 1) | bit_space(M, w, L-1)
+    ret = (ret << 1) | bit_space(w, L-1)
   end
 
   return ret
 end
 
-bit_interleave(W::AbstractVector{<:Unsigned}) = bit_interleave(@static(has_pdep() ? Pdep : Brute), W)
-
-"""
-$(SIGNATURES)
-
-Interleaves all unsigned integers.
-"""
-bit_interleave(Ws::T...) where {T<:Unsigned} = bit_interleave(collect(Ws))
-
-"""
-    $(FUNCTIONNAME)(W[; dims])
-
-Interleaves all unsigned integers along a dimention.
-
-# Arguments
-- `W`: The matrix
-- `dims`: The dimention. Defaults to 1
-"""
-bit_interleave(W::AbstractMatrix{<:Unsigned}; dims::Integer=1) = map(bit_interleave, eachslice(W; dims=dims))
 # !SECTION
 
 # SECTION: Helpers
