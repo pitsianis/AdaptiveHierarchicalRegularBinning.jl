@@ -30,6 +30,7 @@ end
 const files = (
   "dualtreetraversal",
   "boxdistance",
+  "test_dense_nodes",
   "invariants",
   "newtree",
   "spatial_encode",
