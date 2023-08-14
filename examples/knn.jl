@@ -85,7 +85,7 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
     tree.info.context .= NNinfo.(Inf)
     getglobalcontext(tree).idx = zeros(Int, k, n)
     getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    multilevelinteractions(tree, prunepredicate, processleafpair, postconsolidate)
+    multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
 
     println("Brute force")
     idxs, dsts = @time knnsearch(points(tree), points(tree), k)
@@ -96,7 +96,7 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
     getglobalcontext(tree).idx = zeros(Int, k, n)
     getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
     tree.info.context .= NNinfo.(Inf)
-    @time multilevelinteractions(tree, prunepredicate, processleafpair, postconsolidate)
+    @time multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
 
     idx = getglobalcontext(tree).idx
     dst = getglobalcontext(tree).dst
