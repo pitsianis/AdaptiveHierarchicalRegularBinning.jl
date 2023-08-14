@@ -48,8 +48,10 @@ Generate an adaptive hierarchical regular binning tree structure.
 # Arguments
 - `V`: A matrix of data points, where each column represents a data point and each row represents a
   feature.
-- `maxdepth`: An integer that specifies the maximum depth of the tree.
-- `maxpoints`: An integer that specifies the maximum number of points in a leaf node.
+- `maxdepth`: An integer that specifies the maximum depth of the tree. Default is
+  `ceil(Int, log2(size(V,2)))`.
+- `maxpoints`: An integer that specifies the maximum number of points in a leaf node. Default is
+  `ceil(Int, (size(V,2))^(1/4))`.
 - `QT`: (Optional) The type of the vector `R` used to store the spatial encoding of the data points.
   Defaults to `UInt`.
 - `ctxtype`: (Optional) The type of the context information stored at each node of the tree.
@@ -75,7 +77,7 @@ Matrix{Float64}(6,10000) points
 3805 nodes, 3740 leaves and max depth 2
 ```
 """
-function ahrb(V, maxdepth, maxpoints; QT = UInt, ctxtype = Nothing, gtctype = Nothing, method = "block-ecp", lstep::Int = 2)::SpatialTree
+function ahrb(V, maxdepth = ceil(Int, log2(size(V,2))), maxpoints = ceil(Int, (size(V,2))^(1/4)); QT = UInt, ctxtype = Nothing, gtctype = Nothing, method = "block-ecp", lstep::Int = 2)::SpatialTree
   if method == "block-ecp"
     return ahrb_block(V, maxdepth, maxpoints; QT, ctxtype, gtctype, lstep)
   elseif method == "fixed-length"
