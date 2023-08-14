@@ -16,6 +16,8 @@ multiple spatial scales or for far-neighbor filtering. The bins of AHRB are ther
 $d$-dimensional cubes, extending the quad tree and oct tree to a $d$-dimensional hierarchical data
 structure.
 
+For further details, please see the 
+[attached manuscript](https://github.com/pitsianis/AdaptiveHierarchicalRegularBinning.jl/files/12338877/paper-draft.pdf).
 
 ## Summary
 
