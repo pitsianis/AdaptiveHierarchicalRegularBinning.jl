@@ -32,9 +32,7 @@ functionalities, especially for near-neighbor extraction or far-neighbor filteri
 spatial scales.  When the feature dimension is low or modest, AHRB is competitive in time and space
 complexities with other Julia packages for recursive binning of particles into nested cubes.
 Distinctively, AHRB is capable of accommodating higher-dimensional data sets, without suffering from
-high-order or exponential growth in memory usage with the increase in dimension. We demonstrate the
-basic functionalities of AHRB and some extended ones, provide guaranteed time and space
-complexities, and present sequential and parallel executions times on benchmarking datasets.
+high-order or exponential growth in memory usage with the increase in dimension.
 
 
 ## Installation
