@@ -54,7 +54,7 @@ maxP = 32
 tree = ahrb(X, maxL, maxP; QT=UInt128);
 ```
 
-### Properties & invariantes
+### Properties & invariants
 
 ```julia
 # Original points are permuted
