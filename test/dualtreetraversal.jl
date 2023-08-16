@@ -47,3 +47,38 @@ end
     @test all(filter(x -> x <= 1 / 8, sort(D[:, 1])) .== sort([x[2] for x in getcontext(first(Leaves(tree)))]))
   end
 end
+
+@testset "DTT with ordered children" begin
+
+  n = 1_000
+  for d = 1:5
+    X = rand(d, n)
+    # make a full size tree
+    tree = ahrb(X; ctxtype=Vector{Float64});
+
+    prunepredicate(t, s) = false
+    processleafpair!(t, s) = push!(getcontext(t), qbox2boxdist(t, s))
+    postconsolidate!(t) = nothing
+
+    # find the distance of all leaves to all leaves
+    foreach(leaf -> setcontext!(leaf, Float64[]), Leaves(tree))
+    multilevelinteractions(tree, tree, prunepredicate, processleafpair!, postconsolidate!; orderchildren=false)
+    # count how many leaves are out of order
+    ooo1 = mapreduce(leaf -> sum(diff(getcontext(leaf)) .< 0.0), +, Leaves(tree))
+
+    da1 = mapreduce(leaf -> getcontext(leaf), hcat, Leaves(tree))
+
+    # find the distance of all leaves to all leaves 
+    foreach(leaf -> setcontext!(leaf, Float64[]), Leaves(tree))
+    multilevelinteractions(tree, tree, prunepredicate, processleafpair!, postconsolidate!; orderchildren=true)
+    # count how many leaves are out of order
+    ooo2 = mapreduce(leaf -> sum(diff(getcontext(leaf)) .< 0.0), +, Leaves(tree))
+
+    da2 = mapreduce(leaf -> getcontext(leaf), hcat, Leaves(tree))
+
+    # all distances found should be the same
+    @test mapreduce(sort, hcat, eachcol(da1)) ≈ mapreduce(sort, hcat, eachcol(da2))
+    # when we search the children in order, we should get better ordered results
+    @test ooo1 >= ooo2
+  end
+end
