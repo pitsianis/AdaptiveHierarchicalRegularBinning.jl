@@ -3,6 +3,7 @@ module AdaptiveHierarchicalRegularBinning
 import Base: length, eltype, range
 using DocStringExtensions
 using Transducers, LoopVectorization, ThreadsX
+using DataStructures
 
 # TODO: Export less things
 export SpatialTree, TreeInfo, NodeInfo, ahrb, nindex, cindices

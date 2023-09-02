@@ -6,17 +6,18 @@ version = "0.1.0"
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 BitOperations = "e1e0eea2-bc69-5bf6-8574-13634873a17c"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 ThreadsX = "ac1d9e8a-700a-412c-b207-f0111f4b6c0d"
 Transducers = "28d57a85-8fef-5791-bfe6-a80928e7c999"
 
 [compat]
+AbstractTrees = "0.4"
 BitOperations = "0.2"
 DocStringExtensions = "0.9"
-AbstractTrees = "0.4"
-ThreadsX = "0.1"
 LoopVectorization = "0.12"
+ThreadsX = "0.1"
 Transducers = "0.4"
 julia = "1.7"
 

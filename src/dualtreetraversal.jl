@@ -48,3 +48,43 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
 
   dtt(t, s)
 end
+
+function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processleafpair!)
+  
+  pq = PriorityQueue{Tuple{SpatialTree,SpatialTree},Float64}()
+  pq[tree,tree] = 0.0
+  while !isempty(pq)
+    t,s = dequeue!(pq)
+    if prunepredicate(t, s)
+      # do nothing
+    elseif nindex(t) == nindex(s) # coincident
+      if isleaf(t)                      # both are leaves
+        processleafpair!(t, s)
+      else
+        for t_child in cindices(t)      # interact with others next
+          for s_child in cindices(s)
+            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = 0.0
+          end
+        end
+      end
+    else
+      if isleaf(t) && isleaf(s)         # both are leaves, we are done
+        processleafpair!(t, s)
+      elseif isleaf(t)
+        for s_child in cindices(s)
+          pq[t, SpatialTree(TreeInfo(s), s_child)] = nodedist(t, SpatialTree(TreeInfo(s), s_child))
+        end
+      elseif isleaf(s)
+        for t_child in cindices(t)
+          pq[SpatialTree(TreeInfo(t), t_child), s] = nodedist(SpatialTree(TreeInfo(t), t_child), s)
+        end
+      else
+        for t_child in cindices(t)
+          for s_child in cindices(s)
+            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = nodedist(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child))
+          end
+        end
+      end
+    end
+  end
+end

@@ -54,7 +54,7 @@ end
   for d = 1:5
     X = rand(d, n)
     # make a full size tree
-    tree = ahrb(X; ctxtype=Vector{Float64});
+    tree = ahrb(X; ctxtype=Vector{Float64})
 
     prunepredicate(t, s) = false
     processleafpair!(t, s) = push!(getcontext(t), qbox2boxdist(t, s))
@@ -80,5 +80,19 @@ end
     @test mapreduce(sort, hcat, eachcol(da1)) ≈ mapreduce(sort, hcat, eachcol(da2))
     # when we search the children in order, we should get better ordered results
     @test ooo1 >= ooo2
+
+    # find the distance of all leaves to all leaves 
+    foreach(leaf -> setcontext!(leaf, Float64[]), Leaves(tree))
+    AdaptiveHierarchicalRegularBinning.prioritymultilevelinteractions(tree, qbox2boxdist, prunepredicate, processleafpair!)
+    # count how many leaves are out of order
+    ooo3 = mapreduce(leaf -> sum(diff(getcontext(leaf)) .< 0.0), +, Leaves(tree))
+
+    da3 = mapreduce(leaf -> getcontext(leaf), hcat, Leaves(tree))
+
+    # all distances found should be the same
+    @test mapreduce(sort, hcat, eachcol(da1)) ≈ mapreduce(sort, hcat, eachcol(da3))
+    # when we search the children in order, all are ordered!
+    @test all(ooo3 .== 0)
+
   end
 end
