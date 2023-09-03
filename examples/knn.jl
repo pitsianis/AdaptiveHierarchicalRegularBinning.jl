@@ -131,7 +131,7 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
     tree.info.context .= NNinfo.(Inf)
     getglobalcontext(tree).idx = zeros(Int, k, n)
     getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    @time prioritymultilevelinteractions(tree, 
+    @time prioritymultilevelinteractions(tree, tree,
       box2boxdist, prunepredicate, processleafpair, postconsolidate)
 
     # read results

@@ -83,7 +83,7 @@ end
 
     # find the distance of all leaves to all leaves 
     foreach(leaf -> setcontext!(leaf, Float64[]), Leaves(tree))
-    AdaptiveHierarchicalRegularBinning.prioritymultilevelinteractions(tree, qbox2boxdist, prunepredicate, processleafpair!)
+    prioritymultilevelinteractions(tree, tree, qbox2boxdist, prunepredicate, processleafpair!, postconsolidate!)
     # count how many leaves are out of order
     ooo3 = mapreduce(leaf -> sum(diff(getcontext(leaf)) .< 0.0), +, Leaves(tree))
 

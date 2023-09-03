@@ -49,11 +49,11 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
   dtt(t, s)
 end
 
-function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processleafpair!, postconsolidate!)
+function prioritymultilevelinteractions(t, s, nodedist, prunepredicate, processleafpair!, postconsolidate!)
   
   pq = PriorityQueue{Tuple{SpatialTree,SpatialTree},Tuple{Float64,Int}}()
   counter = 0
-  pq[tree,tree] = (0.0, counter -= 1)
+  pq[t,s] = (nodedist(t,s), counter -= 1)
   while !isempty(pq)
     t,s = dequeue!(pq)
     if prunepredicate(t, s)
@@ -65,6 +65,7 @@ function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processl
       else
         for t_child in cindices(t)      # interact with others next
           for s_child in cindices(s)
+            # prioritymultilevelinteractions(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child), nodedist, prunepredicate, processleafpair!, postconsolidate!)
             pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = (0.0, counter -= 1)
           end
         end
