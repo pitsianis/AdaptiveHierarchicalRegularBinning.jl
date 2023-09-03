@@ -57,7 +57,20 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
 
     @inline prunepredicate(t, s) = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
 
-    @inline postconsolidate(t) = ~isleaf(t) ? getcontext(t).maxdist = maximum(maxdist.(t.info.context[cindices(t)])) : nothing
+    @inline function postconsolidate(t)
+      nidx = tree.info.nodes[nindex(t)].pidx
+      context = tree.info.context
+      while nidx != 0 # while not root
+        oldvalue = context[nidx].maxdist
+        newvalue = maximum(tree.info.context[c].maxdist  for c in tree.info.children[nidx])
+        if newvalue < oldvalue
+          context[nidx].maxdist = newvalue
+          nidx = tree.info.nodes[nidx].pidx
+        else
+          break
+        end 
+      end
+    end
 
     @inline @views function processleafpair(t, s)
       C = points(s)
@@ -112,5 +125,24 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
       kdtree = KDTree(X; leafsize=10)
       idxs, dsts = knn(kdtree, X, k, true)
     end
+
+    ## priority
+    println("priority dtt")
+    tree.info.context .= NNinfo.(Inf)
+    getglobalcontext(tree).idx = zeros(Int, k, n)
+    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+    @time prioritymultilevelinteractions(tree, 
+      box2boxdist, prunepredicate, processleafpair, postconsolidate)
+
+    # read results
+    idx = getglobalcontext(tree).idx
+    dst = getglobalcontext(tree).dst
+    # get golden results
+    idxs, dsts = knnsearch(points(tree), points(tree), k)
+    idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+    @test all(idx .== idxs)
+    @test dst ≈ dsts
+  
   end
 end

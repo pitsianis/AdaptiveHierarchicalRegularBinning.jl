@@ -10,6 +10,7 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
     if nindex(t) == nindex(s) # coincident
       if isleaf(t)                      # both are leaves
         processleafpair!(t, s)
+        postconsolidate!(t)
       else
         @threading for c in cindices(t)            # interact with selves first
           dtt(SpatialTree(TreeInfo(t), c), SpatialTree(TreeInfo(t), c))
@@ -23,6 +24,7 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
     else
       if isleaf(t) && isleaf(s)         # both are leaves, we are done
         processleafpair!(t, s)
+        postconsolidate!(t)
       elseif isleaf(t)
         sci = orderchildren ? orderchildrenindices(s,t) : cindices(s)
         for s_child in sci
@@ -42,17 +44,16 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
         end
       end
     end
-
-    postconsolidate!(t)
   end
 
   dtt(t, s)
 end
 
-function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processleafpair!)
+function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processleafpair!, postconsolidate!)
   
-  pq = PriorityQueue{Tuple{SpatialTree,SpatialTree},Float64}()
-  pq[tree,tree] = 0.0
+  pq = PriorityQueue{Tuple{SpatialTree,SpatialTree},Tuple{Float64,Int}}()
+  counter = 0
+  pq[tree,tree] = (0.0, counter -= 1)
   while !isempty(pq)
     t,s = dequeue!(pq)
     if prunepredicate(t, s)
@@ -60,28 +61,31 @@ function prioritymultilevelinteractions(tree, nodedist, prunepredicate, processl
     elseif nindex(t) == nindex(s) # coincident
       if isleaf(t)                      # both are leaves
         processleafpair!(t, s)
+        postconsolidate!(t)
       else
         for t_child in cindices(t)      # interact with others next
           for s_child in cindices(s)
-            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = 0.0
+            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = (0.0, counter -= 1)
           end
         end
       end
     else
       if isleaf(t) && isleaf(s)         # both are leaves, we are done
         processleafpair!(t, s)
+        postconsolidate!(t)
       elseif isleaf(t)
         for s_child in cindices(s)
-          pq[t, SpatialTree(TreeInfo(s), s_child)] = nodedist(t, SpatialTree(TreeInfo(s), s_child))
+          pq[t, SpatialTree(TreeInfo(s), s_child)] = (nodedist(t, SpatialTree(TreeInfo(s), s_child)), counter -= 1)
         end
       elseif isleaf(s)
         for t_child in cindices(t)
-          pq[SpatialTree(TreeInfo(t), t_child), s] = nodedist(SpatialTree(TreeInfo(t), t_child), s)
+          pq[SpatialTree(TreeInfo(t), t_child), s] = (nodedist(SpatialTree(TreeInfo(t), t_child), s), counter -= 1)
         end
       else
         for t_child in cindices(t)
           for s_child in cindices(s)
-            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = nodedist(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child))
+            pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = 
+              (nodedist(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)), counter -= 1)
           end
         end
       end
