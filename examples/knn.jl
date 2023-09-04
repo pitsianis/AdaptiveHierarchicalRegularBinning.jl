@@ -1,4 +1,5 @@
 using NearestNeighbors, AdaptiveHierarchicalRegularBinning, AbstractTrees, Random
+using ThreadsX
 using Test
 
 function knnsearch(C, Q, k)
@@ -133,6 +134,24 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
     getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
     @time prioritymultilevelinteractions(tree, tree,
       box2boxdist, prunepredicate, processleafpair, postconsolidate)
+
+    # read results
+    idx = getglobalcontext(tree).idx
+    dst = getglobalcontext(tree).dst
+    # get golden results
+    idxs, dsts = knnsearch(points(tree), points(tree), k)
+    idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+    @test all(idx .== idxs)
+    @test dst ≈ dsts
+  
+    ## parallel priority
+    println("parallel priority dtt")
+    tree.info.context .= NNinfo.(Inf)
+    getglobalcontext(tree).idx = zeros(Int, k, n)
+    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+    @time ThreadsX.foreach(t -> prioritymultilevelinteractions(t, tree,
+      box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
 
     # read results
     idx = getglobalcontext(tree).idx
