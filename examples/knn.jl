@@ -59,14 +59,14 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
     @inline prunepredicate(t, s) = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
 
     @inline function postconsolidate(t)
-      nidx = tree.info.nodes[nindex(t)].pidx
-      context = tree.info.context
+      nidx = t.info.nodes[nindex(t)].pidx
+      context = t.info.context
       while nidx != 0 # while not root
         oldvalue = context[nidx].maxdist
-        newvalue = maximum(tree.info.context[c].maxdist  for c in tree.info.children[nidx])
+        newvalue = maximum(c -> context[c].maxdist, t.info.children[nidx])
         if newvalue < oldvalue
           context[nidx].maxdist = newvalue
-          nidx = tree.info.nodes[nidx].pidx
+          nidx = t.info.nodes[nidx].pidx
         else
           break
         end 
