@@ -35,9 +35,16 @@ end
 
 mutable struct NNinfo
   maxdist::Float64
+  num_node_interactions::Int64
+  num_dist_calculations::Int64
 end
+NNinfo() = NNinfo(Inf, 0, 0)
 maxdist(node::SpatialTree) = getcontext(node).maxdist
 maxdist(node::NNinfo) = node.maxdist
+num_node_interactions(node::SpatialTree) = getcontext(node).num_node_interactions
+num_node_interactions(node::NNinfo) = node.num_node_interactions
+num_dist_calculations(node::SpatialTree) = getcontext(node).num_dist_calculations
+num_dist_calculations(node::NNinfo) = node.num_dist_calculations
 
 mutable struct GTinfo
   idx::Matrix{Int64}
@@ -53,13 +60,18 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
 n = 100_000
 k = 6
 
+trees_kept = []
+
 for d = 1:4
-  maxL = min(120 ÷ d, 25) 
+  maxL = min(120 ÷ d, 25)
   maxP = Int(ceil(sqrt(n)))
 
   X = randn(d, n)
 
-  @inline prunepredicate(t, s) = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+  @inline function prunepredicate(t, s)
+    getcontext(t).num_node_interactions += 1
+    qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+  end
 
   @inline function postconsolidate(t)
     nidx = t.info.nodes[nindex(t)].pidx
@@ -83,7 +95,9 @@ for d = 1:4
     tpointidx = range(t)
     spointidx = range(s)
 
-    # TODO: add stastistics of distance calculations
+    # TODO: remove `size(points(t), 2)` factor; it can be multiplied at the
+    # very end when we collect the dynamic distance-calculation statistics
+    getcontext(t).num_dist_calculations += size(points(s), 2) * size(points(t), 2)
 
     # ------------------------------ 
     # TODO: use our own knnsearch here & on-the-fly merging
@@ -106,7 +120,7 @@ for d = 1:4
   println(tree)
 
   # run once to compile
-  tree.info.context .= NNinfo.(Inf)
+  tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
   multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
@@ -119,7 +133,7 @@ for d = 1:4
   println("DTT")
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-  tree.info.context .= NNinfo.(Inf)
+  tree.info.context .= NNinfo.()
   @time multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
 
   idx = getglobalcontext(tree).idx
@@ -139,7 +153,7 @@ for d = 1:4
 
   ## priority
   println("priority dtt")
-  tree.info.context .= NNinfo.(Inf)
+  tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
   @time prioritymultilevelinteractions(tree, tree,
@@ -157,7 +171,7 @@ for d = 1:4
 
   ## parallel priority
   println("parallel priority dtt")
-  tree.info.context .= NNinfo.(Inf)
+  tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
   @time ThreadsX.foreach(t -> prioritymultilevelinteractions(t, tree,
@@ -172,5 +186,7 @@ for d = 1:4
 
   @test all(idx .== idxs)
   @test dst ≈ dsts
+
+  push!(trees_kept, tree)
 
 end
