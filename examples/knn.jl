@@ -102,15 +102,17 @@ k = 6
 
 trees_kept = []
 
-for d = 1:4
+for d = 4:4
   maxL = min(120 ÷ d, 25)
   maxP = Int(ceil(sqrt(n)))
 
-  X = randn(d, n)
+  X = rand(d, n)
 
   @inline function prunepredicate(t, s)
-    getcontext(t).num_node_interactions += 1
-    qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+    # only count box interactions that are not pruned
+    cond = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+    getcontext(t).num_node_interactions += !cond    
+    cond
   end
 
   @inline function postconsolidate(t)
