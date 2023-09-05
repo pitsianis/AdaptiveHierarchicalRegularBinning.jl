@@ -49,28 +49,35 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
   dtt(t, s)
 end
 
-function prioritymultilevelinteractions(t, s, nodedist, prunepredicate, processleafpair!, postconsolidate!)
+function prioritymultilevelinteractions(
+    t::SpatialTree{T, E, C, GTC}, 
+    s::SpatialTree{T, E, C, GTC}, 
+    nodedist::Function, 
+    prunepredicate::Function, 
+    processleafpair!::Function, 
+    postconsolidate!::Function
+  ) where {T<:Real, E<:Unsigned, C, GTC}
   
-  pq = PriorityQueue{Tuple{SpatialTree,SpatialTree},Tuple{Float64,Int}}()
+  pq = PriorityQueue{ Tuple{ SpatialTree{T, E, C, GTC}, SpatialTree{T, E, C, GTC} }, Tuple{Float64,Int} }()
   counter = 0
   pq[t,s] = (nodedist(t,s), counter -= 1)
   while !isempty(pq)
     t,s = dequeue!(pq)
     if prunepredicate(t, s)
       # do nothing
-    elseif nindex(t) == nindex(s) # coincident
+    elseif nindex(t) == nindex(s) # coincident nodes
       if isleaf(t)                      # both are leaves
         processleafpair!(t, s)
         postconsolidate!(t)
       else
         for t_child in cindices(t)      # interact with others next
           for s_child in cindices(s)
-            # prioritymultilevelinteractions(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child), nodedist, prunepredicate, processleafpair!, postconsolidate!)
+
             pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = (0.0, counter -= 1)
           end
         end
       end
-    else
+    else  # distinct nodes
       if isleaf(t) && isleaf(s)         # both are leaves, we are done
         processleafpair!(t, s)
         postconsolidate!(t)
@@ -81,8 +88,8 @@ function prioritymultilevelinteractions(t, s, nodedist, prunepredicate, processl
       elseif isleaf(s)
         for t_child in cindices(t)
           pq[SpatialTree(TreeInfo(t), t_child), s] = (nodedist(SpatialTree(TreeInfo(t), t_child), s), counter -= 1)
-        end
-      else
+        end#=  =#
+      else                              # both are internal
         for t_child in cindices(t)
           for s_child in cindices(s)
             pq[SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child)] = 

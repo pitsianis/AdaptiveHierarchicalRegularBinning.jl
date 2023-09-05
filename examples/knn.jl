@@ -7,19 +7,23 @@ function knnsearch(C, Q, k)
   return knn(kdtree, Q, k, true)
 end
 
-@inbounds @views function mergedstidx!(idx, dst, idx0, dst0, reidx)
-  for i in 1:size(idx0, 1)
+@inbounds @views function mergedstidx!(
+  idx,  # k-by-N nearest-neighbor indices, found so far
+  dst,  # k-by-N nearest-neighbor distances, found so far
+  idxtgt_new, # k-by-Ntgt nearest-neighbor indices, local to the source leaf, found in the current leaf2leaf interaction
+  dsttgt_new, # k-by-Ntgt nearest-neighbor distances, found in the current leaf2leaf interaction
+  reidx # M-by-1 index mapping from the local indices in the source leaf to the global index
+)
+  for i in 1:size(idxtgt_new, 1)
     j0, j1 = 1, 1
-    while j0 <= length(idx0[1]) && j1 <= size(idx, 1)
-      if dst0[i][j0] < dst[j1, i]
-        # idx[j1+1:end, i] .= idx[j1:end-1, i]
-        # dst[j1+1:end, i] .= dst[j1:end-1, i]
+    while j0 <= length(idxtgt_new[1]) && j1 <= size(idx, 1)
+      if dsttgt_new[i][j0] < dst[j1, i]
         for jj = size(idx, 1):-1:j1+1
           idx[jj, i] = idx[jj-1, i]
           dst[jj, i] = dst[jj-1, i]
         end
-        idx[j1, i] = reidx[idx0[i][j0]]
-        dst[j1, i] = dst0[i][j0]
+        idx[j1, i] = reidx[idxtgt_new[i][j0]]
+        dst[j1, i] = dsttgt_new[i][j0]
         j0 += 1
         j1 += 1
       else
@@ -44,124 +48,129 @@ getidx(node::SpatialTree) = getglobalcontext(node).idx
 getdst(node::SpatialTree) = getglobalcontext(node).dst
 
 ## 
-@testset "elementary" begin
 
-  # Random.seed!(0)
-  n = 100_000
-  k = 6
+# Random.seed!(0)
+n = 100_000
+k = 6
 
-  for d = 1:4
-    maxL = min(120 ÷ d, 25) 
-    maxP = Int(ceil(sqrt(n)))
+for d = 1:4
+  maxL = min(120 ÷ d, 25) 
+  maxP = Int(ceil(sqrt(n)))
 
-    X = randn(d, n)
+  X = randn(d, n)
 
-    @inline prunepredicate(t, s) = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+  @inline prunepredicate(t, s) = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
 
-    @inline function postconsolidate(t)
-      nidx = t.info.nodes[nindex(t)].pidx
-      context = t.info.context
-      while nidx != 0 # while not root
-        oldvalue = context[nidx].maxdist
-        newvalue = maximum(c -> context[c].maxdist, t.info.children[nidx])
-        if newvalue < oldvalue
-          context[nidx].maxdist = newvalue
-          nidx = t.info.nodes[nidx].pidx
-        else
-          break
-        end 
-      end
+  @inline function postconsolidate(t)
+    nidx = t.info.nodes[nindex(t)].pidx
+    context = t.info.context
+    while nidx != 0 # while not root
+      oldvalue = context[nidx].maxdist
+      newvalue = maximum(c -> context[c].maxdist, t.info.children[nidx])
+      if newvalue < oldvalue
+        context[nidx].maxdist = newvalue
+        nidx = t.info.nodes[nidx].pidx
+      else
+        break
+      end 
     end
+  end
 
-    @inline @views function processleafpair(t, s)
-      C = points(s)
-      Q = points(t)
-      kk = min(k, size(C, 2))
-      tpointidx = range(t)
-      spointidx = range(s)
-      idx0, dst0 = knnsearch(C, Q, kk)
+  @inline @views function processleafpair(t, s)
+    C = points(s)
+    Q = points(t)
+    kk = min(k, size(C, 2))
+    tpointidx = range(t)
+    spointidx = range(s)
 
-      idx = getglobalcontext(tree).idx
-      dst = getglobalcontext(tree).dst
+    # TODO: add stastistics of distance calculations
 
-      mergedstidx!(idx[:, tpointidx], dst[:, tpointidx], idx0, dst0, spointidx)
-      getcontext(t).maxdist = maximum(dst[k, tpointidx])
-    end
-
-    println("AHRB (d = $d)")
-    @time begin
-      tree = AdaptiveHierarchicalRegularBinning.ahrb_fixed_length(X, maxL, maxP; QT=UInt128, ctxtype=NNinfo, gtctype=GTinfo)
-      lookup = invperm(tree.info.perm)
-    end
-    println(tree)
-
-    # run once to compile
-    tree.info.context .= NNinfo.(Inf)
-    getglobalcontext(tree).idx = zeros(Int, k, n)
-    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
-
-    println("Brute force")
-    idxs, dsts = @time knnsearch(points(tree), points(tree), k)
-    idxs, dsts = hcat(idxs...), hcat(dsts...)
-
-    # run again to time and check correctness
-    println("DTT")
-    getglobalcontext(tree).idx = zeros(Int, k, n)
-    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    tree.info.context .= NNinfo.(Inf)
-    @time multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
+    # ------------------------------ 
+    # TODO: use our own knnsearch here & on-the-fly merging
+    idx0, dst0 = knnsearch(C, Q, kk)
 
     idx = getglobalcontext(tree).idx
     dst = getglobalcontext(tree).dst
 
-    @test all((X - points(tree)[:, lookup]) .== 0)
-    @test all(idx .== idxs)
-    @test dst ≈ dsts
+    mergedstidx!(idx[:, tpointidx], dst[:, tpointidx], idx0, dst0, spointidx)
+    # ------------------------------
+    # TODO: mergedstidx should return maximum kth distance
+    getcontext(t).maxdist = maximum(dst[k, tpointidx])
+  end
 
-    println("KD-Tree")
+  println("AHRB (d = $d)")
+  @time begin
+    tree = AdaptiveHierarchicalRegularBinning.ahrb_fixed_length(X, maxL, maxP; QT=UInt128, ctxtype=NNinfo, gtctype=GTinfo)
+    lookup = invperm(tree.info.perm)
+  end
+  println(tree)
+
+  # run once to compile
+  tree.info.context .= NNinfo.(Inf)
+  getglobalcontext(tree).idx = zeros(Int, k, n)
+  getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+  multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
+
+  println("Brute force")
+  idxs, dsts = @time knnsearch(points(tree), points(tree), k)
+  idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+  # run again to time and check correctness
+  println("DTT")
+  getglobalcontext(tree).idx = zeros(Int, k, n)
+  getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+  tree.info.context .= NNinfo.(Inf)
+  @time multilevelinteractions(tree, tree, prunepredicate, processleafpair, postconsolidate)
+
+  idx = getglobalcontext(tree).idx
+  dst = getglobalcontext(tree).dst
+
+  @test all((X - points(tree)[:, lookup]) .== 0)
+  @test all(idx .== idxs)
+  @test dst ≈ dsts
+
+  println("KD-Tree")
+  kdtree = KDTree(X; leafsize=10)
+  idxs, dsts = knn(kdtree, X, k, true)
+  @time begin
     kdtree = KDTree(X; leafsize=10)
     idxs, dsts = knn(kdtree, X, k, true)
-    @time begin
-      kdtree = KDTree(X; leafsize=10)
-      idxs, dsts = knn(kdtree, X, k, true)
-    end
-
-    ## priority
-    println("priority dtt")
-    tree.info.context .= NNinfo.(Inf)
-    getglobalcontext(tree).idx = zeros(Int, k, n)
-    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    @time prioritymultilevelinteractions(tree, tree,
-      box2boxdist, prunepredicate, processleafpair, postconsolidate)
-
-    # read results
-    idx = getglobalcontext(tree).idx
-    dst = getglobalcontext(tree).dst
-    # get golden results
-    idxs, dsts = knnsearch(points(tree), points(tree), k)
-    idxs, dsts = hcat(idxs...), hcat(dsts...)
-
-    @test all(idx .== idxs)
-    @test dst ≈ dsts
-  
-    ## parallel priority
-    println("parallel priority dtt")
-    tree.info.context .= NNinfo.(Inf)
-    getglobalcontext(tree).idx = zeros(Int, k, n)
-    getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-    @time ThreadsX.foreach(t -> prioritymultilevelinteractions(t, tree,
-      box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
-
-    # read results
-    idx = getglobalcontext(tree).idx
-    dst = getglobalcontext(tree).dst
-    # get golden results
-    idxs, dsts = knnsearch(points(tree), points(tree), k)
-    idxs, dsts = hcat(idxs...), hcat(dsts...)
-
-    @test all(idx .== idxs)
-    @test dst ≈ dsts
-  
   end
+
+  ## priority
+  println("priority dtt")
+  tree.info.context .= NNinfo.(Inf)
+  getglobalcontext(tree).idx = zeros(Int, k, n)
+  getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+  @time prioritymultilevelinteractions(tree, tree,
+    box2boxdist, prunepredicate, processleafpair, postconsolidate)
+
+  # read results
+  idx = getglobalcontext(tree).idx
+  dst = getglobalcontext(tree).dst
+  # get golden results
+  idxs, dsts = knnsearch(points(tree), points(tree), k)
+  idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+  @test all(idx .== idxs)
+  @test dst ≈ dsts
+
+  ## parallel priority
+  println("parallel priority dtt")
+  tree.info.context .= NNinfo.(Inf)
+  getglobalcontext(tree).idx = zeros(Int, k, n)
+  getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+  @time ThreadsX.foreach(t -> prioritymultilevelinteractions(t, tree,
+    box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
+
+  # read results
+  idx = getglobalcontext(tree).idx
+  dst = getglobalcontext(tree).dst
+  # get golden results
+  idxs, dsts = knnsearch(points(tree), points(tree), k)
+  idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+  @test all(idx .== idxs)
+  @test dst ≈ dsts
+
 end
