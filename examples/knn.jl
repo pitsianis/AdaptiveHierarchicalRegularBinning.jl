@@ -33,6 +33,46 @@ end
   end
 end
 
+function oracle_interaction_prc( 
+  tree::SpatialTree{V,E,GTC,C}, 
+  idx::Matrix{Ti}, 
+  dst::Matrix{Td}
+) where {V, E, GTC, C, Ti<:Integer, Td<:Real}
+
+  n = size(idx, 2)
+
+  leafidx = [range(i) for i in Leaves(tree)]
+  # which leaves contain all neighbors of a point
+  leavesperpoint = [mapreduce(x -> sum(x .>= first.(leafidx)), union, idx[:,i]) for i = 1:n]
+  # which leaves contain all neighbors of the points of a leaf
+  leavesperleaf = map(rng -> union(leavesperpoint[rng]...), leafidx)
+
+  leaves = collect(Leaves(tree))
+  L = length(leaves)
+  # distance matrix between leaves
+  Dmax = [AdaptiveHierarchicalRegularBinning.maxbox2boxdist(leaves[i], leaves[j]) for i in 1:L, j in 1:L]
+  D = [box2boxdist(leaves[i], leaves[j]) for i in 1:L, j in 1:L]
+  
+  # what are the distances of the leaves that contain all neighbors of the points of a leaf
+  distperleaf = [unique(Dmax[i, leavesperleaf[i]]) for i = 1:L]
+  # how many leaves contain all neighbors
+  oracle = sum(length.(leavesperleaf))
+  
+  # how many leaves have the same or smaller distance than the leaves that contain all neighbors
+  reality_static = sum( 1:L ) do i
+    sum(Dmax[i, :] .<= maximum(distperleaf[i]))
+  end
+
+  # how many leaves have the same or smaller distance than the furthest away kth neighbor of each target box
+  reality_dynamic = sum( 1:L ) do i
+    kth_largest_distance = maximum( dst[ end, range(leaves[i]) ] )
+    sum( D[i, :] .<= kth_largest_distance )
+  end
+
+  return (reality_static, reality_dynamic, oracle)
+
+end
+
 mutable struct NNinfo
   maxdist::Float64
   num_node_interactions::Int64

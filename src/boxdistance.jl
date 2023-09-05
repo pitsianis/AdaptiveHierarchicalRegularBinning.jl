@@ -17,6 +17,40 @@ function box2boxdist(node1, node2)
   sqrt(sum(max.(c2 .- c1 .- h, c1 .- c2 .- h, 0.0).^2))
 end
 
+function maxbox2boxdist(node1, node2)
+  c1 = center(node1)
+  c2 = center(node2)
+  
+  # finding starting points and ending points of each interval (per side)
+  start1 = c1 .- sidelength(node1)/2
+  end1   = c1 .+ sidelength(node1)/2
+  start2 = c2 .- sidelength(node2)/2
+  end2   = c2 .+ sidelength(node2)/2
+
+  # Calculate distances within each interval
+  width1 = end1 .- start1
+  width2 = end2 .- start2
+
+  # Calculate distances between endpoints of the intervals
+  distance_start1_to_start2 = abs.(start1 - start2)
+  distance_start1_to_end2   = abs.(start1 - end2)
+  distance_end1_to_start2   = abs.(end1   - start2)
+  distance_end1_to_end2     = abs.(end1   - end2)
+  
+  # Find the maximum distance
+  max_distance = max.(
+      distance_start1_to_start2,
+      distance_start1_to_end2,
+      distance_end1_to_start2,
+      distance_end1_to_end2,
+      width1,
+      width2
+  )
+  
+  return sqrt( sum( max_distance.^2 ) )
+
+end
+
 
 """
 point2boxdist(p, c, h)
