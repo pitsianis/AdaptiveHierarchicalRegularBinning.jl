@@ -11,10 +11,11 @@ function box2boxdist(c1, h1, c2, h2)
   sqrt(sum(max.(c2 .- h2 .- (c1 .+ h1), c1 .- h1 .- (c2 .+ h2), 0.0).^2))
 end
 function box2boxdist(node1, node2)
-  c1 = center(node1)
-  c2 = center(node2) 
-  h = (sidelength(node1) + sidelength(node2))/2
-  sqrt(sum(max.(c2 .- c1 .- h, c1 .- c2 .- h, 0.0).^2))
+  # c1 = center(node1)
+  # c2 = center(node2) 
+  # h = (sidelength(node1) + sidelength(node2))/2
+  # sqrt(sum(max.(c2 .- c1 .- h, c1 .- c2 .- h, 0.0).^2))
+  qbox2boxdist(node1, node2) * AdaptiveHierarchicalRegularBinning.scalar(node1)
 end
 
 function maxbox2boxdist(node1, node2)
