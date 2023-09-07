@@ -4,6 +4,7 @@ import Base: length, eltype, range
 using DocStringExtensions
 using Transducers, LoopVectorization, ThreadsX
 using DataStructures
+using SparseArrays
 
 # TODO: Export less things
 export SpatialTree, TreeInfo, NodeInfo, ahrb, nindex, cindices
@@ -28,6 +29,8 @@ include("dualtreetraversal.jl")
 
 include("blockecp.jl")
 include("fixedlengthencoding.jl")
+
+include("knn.jl")
 
 function __init__()
 

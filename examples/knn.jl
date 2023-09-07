@@ -2,36 +2,13 @@ using NearestNeighbors, AdaptiveHierarchicalRegularBinning, AbstractTrees, Rando
 using ThreadsX
 using Test
 
+import AdaptiveHierarchicalRegularBinning: onthefly_block_knn!, heap_sort_inplace!
+
 function knnsearch(C, Q, k)
   kdtree = KDTree(C; leafsize=10) #brutetree = BruteTree(C)
   return knn(kdtree, Q, k, true)
 end
 
-@inbounds @views function mergedstidx!(
-  idx,  # k-by-N nearest-neighbor indices, found so far
-  dst,  # k-by-N nearest-neighbor distances, found so far
-  idxtgt_new, # k-by-Ntgt nearest-neighbor indices, local to the source leaf, found in the current leaf2leaf interaction
-  dsttgt_new, # k-by-Ntgt nearest-neighbor distances, found in the current leaf2leaf interaction
-  reidx # M-by-1 index mapping from the local indices in the source leaf to the global index
-)
-  for i in 1:size(idxtgt_new, 1)
-    j0, j1 = 1, 1
-    while j0 <= length(idxtgt_new[1]) && j1 <= size(idx, 1)
-      if dsttgt_new[i][j0] < dst[j1, i]
-        for jj = size(idx, 1):-1:j1+1
-          idx[jj, i] = idx[jj-1, i]
-          dst[jj, i] = dst[jj-1, i]
-        end
-        idx[j1, i] = reidx[idxtgt_new[i][j0]]
-        dst[j1, i] = dsttgt_new[i][j0]
-        j0 += 1
-        j1 += 1
-      else
-        j1 += 1
-      end
-    end
-  end
-end
 
 function oracle_interaction_prc( 
   tree::SpatialTree{V,E,GTC,C}, 
@@ -130,7 +107,7 @@ for d = 4:4
     end
   end
 
-  @inline @views function processleafpair(t, s)
+  @inline function processleafpair(t, s)
     C = points(s)
     Q = points(t)
     kk = min(k, size(C, 2))
@@ -140,18 +117,25 @@ for d = 4:4
     # TODO: remove `size(points(t), 2)` factor; it can be multiplied at the
     # very end when we collect the dynamic distance-calculation statistics
     getcontext(t).num_dist_calculations += size(points(s), 2) * size(points(t), 2)
-
-    # ------------------------------ 
-    # TODO: use our own knnsearch here & on-the-fly merging
-    idx0, dst0 = knnsearch(C, Q, kk)
-
+    
     idx = getglobalcontext(tree).idx
     dst = getglobalcontext(tree).dst
 
-    mergedstidx!(idx[:, tpointidx], dst[:, tpointidx], idx0, dst0, spointidx)
-    # ------------------------------
-    # TODO: mergedstidx should return maximum kth distance
-    getcontext(t).maxdist = maximum(dst[k, tpointidx])
+    idx_t = @view idx[:, tpointidx]
+    dst_t = @view dst[:, tpointidx]
+    
+    # we should evaluate these once and store them (where to put these?)
+    Q_nrmsq = vec(sum(abs2, Q, dims=1))
+    C_nrmsq = vec(sum(abs2, C, dims=1))
+
+    # must be sparse and we need to keep transpose of C (where to put these?)
+    Ct = sparse( permutedims( C ) )
+    Q  = sparse( Q )
+    xb = zeros( size(C,2) )
+
+    maxdist = onthefly_block_knn!( idx_t, dst_t, xb, Ct, Q, C_nrmsq, Q_nrmsq, spointidx )
+
+    getcontext(t).maxdist = maxdist
   end
 
   println("AHRB (d = $d)")
@@ -181,9 +165,14 @@ for d = 4:4
   idx = getglobalcontext(tree).idx
   dst = getglobalcontext(tree).dst
 
+  # final sorting
+  @inbounds for i in axes(dst,2)
+    heap_sort_inplace!( view(dst, :, i), view(idx, :, i) )
+  end
+
   @test all((X - points(tree)[:, lookup]) .== 0)
   @test all(idx .== idxs)
-  @test dst ≈ dsts
+  @test dst ≈ dsts.^2
 
   println("KD-Tree")
   kdtree = KDTree(X; leafsize=10)
@@ -204,12 +193,18 @@ for d = 4:4
   # read results
   idx = getglobalcontext(tree).idx
   dst = getglobalcontext(tree).dst
+
+  # final sorting
+  @inbounds for i in axes(dst,2)
+    heap_sort_inplace!( view(dst, :, i), view(idx, :, i) )
+  end
+
   # get golden results
   idxs, dsts = knnsearch(points(tree), points(tree), k)
   idxs, dsts = hcat(idxs...), hcat(dsts...)
 
   @test all(idx .== idxs)
-  @test dst ≈ dsts
+  @test dst ≈ dsts.^2
 
   ## parallel priority
   println("parallel priority dtt")
@@ -222,12 +217,18 @@ for d = 4:4
   # read results
   idx = getglobalcontext(tree).idx
   dst = getglobalcontext(tree).dst
+  
+  # final sorting
+  @inbounds for i in axes(dst,2)
+    heap_sort_inplace!( view(dst, :, i), view(idx, :, i) )
+  end
+  
   # get golden results
   idxs, dsts = knnsearch(points(tree), points(tree), k)
   idxs, dsts = hcat(idxs...), hcat(dsts...)
 
   @test all(idx .== idxs)
-  @test dst ≈ dsts
+  @test dst ≈ dsts.^2
 
   push!(trees_kept, tree)
 

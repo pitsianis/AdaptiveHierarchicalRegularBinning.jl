@@ -2,6 +2,7 @@
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
 AdaptiveHierarchicalRegularBinning = "a1dcf1a9-d6bc-402b-9c1f-3b91f24644e2"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
 LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"

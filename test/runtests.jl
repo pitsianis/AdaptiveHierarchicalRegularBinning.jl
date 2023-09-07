@@ -35,6 +35,7 @@ const files = (
   "newtree",
   "spatial_encode",
   "newtree",
+  "knn"
 )
 
 @testset "AdaptiveHierarchicalRegularBinning.jl" begin
