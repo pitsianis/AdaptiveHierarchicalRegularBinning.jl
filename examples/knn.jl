@@ -110,7 +110,7 @@ for d = 4:4
 
   @inline function prunepredicate(t, s)
     # only count box interactions that are not pruned
-    cond = qbox2boxdist(t, s) * t.info.scale > maxdist(t)
+    cond = qbox2boxdist(t, s) * AdaptiveHierarchicalRegularBinning.scalar(t) > maxdist(t)
     getcontext(t).num_node_interactions += !cond    
     cond
   end
