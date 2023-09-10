@@ -14,7 +14,7 @@ export original_perm, original_perm!
 export setcontext!, getcontext, getglobalcontext
 export qbox2boxdistInf, qbox2boxdist, box2boxdist, point2boxdist
 export adjacentLeaf2LeafAnyLevel, adjacentSameLevel, neighborhood
-export dualtreetraversal, multilevelinteractions, prioritymultilevelinteractions
+export dualtreetraversal, multilevelinteractions, prioritymultilevelinteractions, specialprioritymultilevelinteractions
 
 include("tree_structures.jl")
 
