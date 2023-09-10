@@ -29,13 +29,13 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
       end
     elseif isleaf(s)
       tci = orderchildren ? orderchildrenindices(t,s) : cindices(t)
-      @threading for t_child in tci
+      for t_child in tci
         tc = SpatialTree(TreeInfo(t), t_child)
         !prunepredicate(tc, s) && multilevelinteractions(tc, s, prunepredicate, processleafpair!, postconsolidate!; orderchildren)
       end
     else
       tci, sci = orderchildren ? (orderchildrenindices(t,s), orderchildrenindices(s,t)) : (cindices(t), cindices(s))
-      @threading for t_child in tci
+      for t_child in tci
         tc = SpatialTree(TreeInfo(t), t_child)
         for s_child in sci
           sc = SpatialTree(TreeInfo(s), s_child)
