@@ -230,6 +230,30 @@ for d = 4:4
   @test all(idx .== idxs)
   @test dst ≈ dsts.^2
 
+  ## specialized parallel priority
+  println("specialized parallel priority dtt")
+  tree.info.context .= NNinfo.()
+  getglobalcontext(tree).idx = zeros(Int, k, n)
+  getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
+  @time ThreadsX.foreach(t -> AdaptiveHierarchicalRegularBinning.specialprioritymultilevelinteractions(t, tree,
+    box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
+
+  # read results
+  idx = getglobalcontext(tree).idx
+  dst = getglobalcontext(tree).dst
+  
+  # final sorting
+  @inbounds for i in axes(dst,2)
+    heap_sort_inplace!( view(dst, :, i), view(idx, :, i) )
+  end
+  
+  # get golden results
+  idxs, dsts = knnsearch(points(tree), points(tree), k)
+  idxs, dsts = hcat(idxs...), hcat(dsts...)
+
+  @test all(idx .== idxs)
+  @test dst ≈ dsts.^2
+
   push!(trees_kept, tree)
 
 end

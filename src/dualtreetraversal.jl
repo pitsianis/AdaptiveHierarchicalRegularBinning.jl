@@ -97,3 +97,38 @@ function prioritymultilevelinteractions(
     end
   end
 end
+
+"""
+Specialized version of `prioritymultilevelinteractions`  where t is constant leaf.
+"""
+function specialprioritymultilevelinteractions(
+  t::SpatialTree{T, E, C, GTC}, 
+  s::SpatialTree{T, E, C, GTC}, 
+  nodedist::Function, 
+  prunepredicate::Function, 
+  processleafpair!::Function, 
+  postconsolidate!::Function
+) where {T<:Real, E<:Unsigned, C, GTC}
+
+pq = PriorityQueue{ SpatialTree{T, E, C, GTC}, Tuple{Float64,Int} }()
+counter = 0
+pq[s] = (nodedist(t,s), counter -= 1)
+while !isempty(pq)
+  s = dequeue!(pq)
+  if prunepredicate(t, s)
+    # do nothing
+  elseif nindex(t) == nindex(s) # coincident nodes                     # both are leaves
+    processleafpair!(t, s)
+    postconsolidate!(t)
+  else  # distinct nodes
+    if isleaf(s)         # both are leaves, we are done
+      processleafpair!(t, s)
+      postconsolidate!(t)
+    else
+      for s_child in cindices(s)
+        pq[SpatialTree(TreeInfo(s), s_child)] = (nodedist(t, SpatialTree(TreeInfo(s), s_child)), counter -= 1)
+      end
+    end
+  end
+end
+end
