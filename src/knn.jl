@@ -95,3 +95,50 @@ end
   xis[i] = index
   return
 end
+
+
+
+# --- The following function is a WIP for operating on view of matrices ---
+#
+#=
+
+function AdaptiveHierarchicalRegularBinning.spcolmuldist!(
+  xb::SubArray{Tv, 1, Vector{Tv}, Tuple{UnitRange{Ti}}, true},
+  i::Int64,
+  A::SubArray{Tv, 2, SparseMatrixCSC{Tv, Ti}, Tuple{UnitRange{Ti}, Base.Slice{Base.OneTo{Ti}}}, false},
+  B::SubArray{Tv, 2, SparseMatrixCSC{Tv, Ti}, Tuple{Base.Slice{Base.OneTo{Ti}}, UnitRange{Ti}}, false}
+) where {Tv <: Real, Ti <: Integer}
+
+  rowvalA = rowvals(A.parent)
+  nzvalA  = nonzeros(A.parent)
+  rowvalB = rowvals(B)
+  nzvalB = nonzeros(B)
+
+  rng_beg = first( first( A.indices ) )
+  rng_end = last( first( A.indices ) )
+
+  @inbounds begin
+    for jp in nzrange(B, i)
+      nzB = nzvalB[jp]
+      j = rowvalB[jp]
+      for kp in nzrange(A.parent, j)
+        if rowvalA[kp] < rng_beg
+          continue
+        elseif rowvalA[kp] > rng_end
+          break
+        end
+        nzC = nzvalA[kp] * nzB
+        k = rowvalA[kp] - rng_beg + 1  # local index in range of A rows
+        xb[k] -= 2nzC
+      end
+    end
+  end
+
+  return nothing
+
+end
+
+
+=#
+#
+# ---
