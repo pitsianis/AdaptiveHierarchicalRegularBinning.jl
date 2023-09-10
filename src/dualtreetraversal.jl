@@ -3,9 +3,6 @@ orderchildrenindices(node,refnode) = cindices(node)[sortperm(children(node), by 
 
 function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconsolidate!; orderchildren = false)
   
-  if prunepredicate(t, s)
-    return
-  end
   if nindex(t) == nindex(s) # coincident
     if isleaf(t)                      # both are leaves
       processleafpair!(t, s)
@@ -27,18 +24,22 @@ function multilevelinteractions(t,s, prunepredicate, processleafpair!, postconso
     elseif isleaf(t)
       sci = orderchildren ? orderchildrenindices(s,t) : cindices(s)
       for s_child in sci
-        multilevelinteractions(t, SpatialTree(TreeInfo(s), s_child), prunepredicate, processleafpair!, postconsolidate!; orderchildren)
+        sc = SpatialTree(TreeInfo(s), s_child)
+        !prunepredicate(t, sc) && multilevelinteractions(t, sc, prunepredicate, processleafpair!, postconsolidate!; orderchildren)
       end
     elseif isleaf(s)
       tci = orderchildren ? orderchildrenindices(t,s) : cindices(t)
-      for t_child in tci
-        multilevelinteractions(SpatialTree(TreeInfo(t), t_child), s, prunepredicate, processleafpair!, postconsolidate!; orderchildren)
+      @threading for t_child in tci
+        tc = SpatialTree(TreeInfo(t), t_child)
+        !prunepredicate(tc, s) && multilevelinteractions(tc, s, prunepredicate, processleafpair!, postconsolidate!; orderchildren)
       end
     else
       tci, sci = orderchildren ? (orderchildrenindices(t,s), orderchildrenindices(s,t)) : (cindices(t), cindices(s))
-      for t_child in tci
+      @threading for t_child in tci
+        tc = SpatialTree(TreeInfo(t), t_child)
         for s_child in sci
-          multilevelinteractions(SpatialTree(TreeInfo(t), t_child), SpatialTree(TreeInfo(s), s_child), prunepredicate, processleafpair!, postconsolidate!; orderchildren)
+          sc = SpatialTree(TreeInfo(s), s_child)
+          !prunepredicate(tc, sc) && multilevelinteractions(tc, sc, prunepredicate, processleafpair!, postconsolidate!; orderchildren)
         end
       end
     end

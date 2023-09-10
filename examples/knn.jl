@@ -73,7 +73,7 @@ getdst(node::SpatialTree) = getglobalcontext(node).dst
 
 ## 
 
-# Random.seed!(0)
+Random.seed!(0)
 n = 100_000
 k = 6
 
