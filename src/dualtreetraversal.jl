@@ -117,16 +117,19 @@ while !isempty(pq)
   s = dequeue!(pq)
   if prunepredicate(t, s)
     # do nothing
-  elseif nindex(t) == nindex(s) # coincident nodes                     # both are leaves
-    processleafpair!(t, s)
-    postconsolidate!(t)
-  else  # distinct nodes
-    if isleaf(s)         # both are leaves, we are done
+  else
+    if nindex(t) == nindex(s) # coincident nodes                     # both are leaves
+    # done in preprocessing
+    elseif isleaf(s)         # both are leaves, we are done
       processleafpair!(t, s)
       postconsolidate!(t)
     else
       for s_child in cindices(s)
-        pq[SpatialTree(TreeInfo(s), s_child)] = (nodedist(t, SpatialTree(TreeInfo(s), s_child)), counter -= 1)
+        sc = SpatialTree(TreeInfo(s), s_child)
+        dist = nodedist(t, sc)
+        if !prunepredicate(t, sc)
+          pq[sc] = (dist, counter -= 1)
+        end
       end
     end
   end

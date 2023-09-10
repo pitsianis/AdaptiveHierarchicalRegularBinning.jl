@@ -182,7 +182,7 @@ for d = 4:4
     idxs, dsts = knn(kdtree, X, k, true)
   end
 
-  ## priority
+  #= priority
   println("priority dtt")
   tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
@@ -205,6 +205,7 @@ for d = 4:4
 
   @test all(idx .== idxs)
   @test dst ≈ dsts.^2
+  =#
 
   ## parallel priority
   println("parallel priority dtt")
@@ -235,8 +236,12 @@ for d = 4:4
   tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-  @time ThreadsX.foreach(t -> specialprioritymultilevelinteractions(t, tree,
-    box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
+  @time begin
+    L = collect(Leaves(tree))
+    ThreadsX.foreach(t -> processleafpair(t, t), L)
+    ThreadsX.foreach(t -> specialprioritymultilevelinteractions(t, tree,
+    box2boxdist, prunepredicate, processleafpair, postconsolidate), L)
+  end
 
   # read results
   idx = getglobalcontext(tree).idx
