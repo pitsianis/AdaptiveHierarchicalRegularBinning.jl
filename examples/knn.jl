@@ -1,4 +1,4 @@
-using NearestNeighbors, AdaptiveHierarchicalRegularBinning, AbstractTrees, Random
+using NearestNeighbors, AdaptiveHierarchicalRegularBinning, AbstractTrees, SparseArrays, Random
 using ThreadsX
 using Test
 
