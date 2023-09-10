@@ -235,7 +235,7 @@ for d = 4:4
   tree.info.context .= NNinfo.()
   getglobalcontext(tree).idx = zeros(Int, k, n)
   getglobalcontext(tree).dst = ones(Float64, k, n) * Inf
-  @time ThreadsX.foreach(t -> AdaptiveHierarchicalRegularBinning.specialprioritymultilevelinteractions(t, tree,
+  @time ThreadsX.foreach(t -> specialprioritymultilevelinteractions(t, tree,
     box2boxdist, prunepredicate, processleafpair, postconsolidate), collect(Leaves(tree)))
 
   # read results
