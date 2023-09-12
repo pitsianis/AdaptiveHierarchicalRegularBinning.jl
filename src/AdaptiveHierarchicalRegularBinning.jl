@@ -35,11 +35,12 @@ include("knn.jl")
 function __init__()
 
   # Decide whether to enable multithreading or not
-  if Threads.nthreads() > 1
-    enable_multithreading()
-  else
-    disable_multithreading()
-  end
+  # BUG: this breaks precompilation
+  # if Threads.nthreads() > 1
+  #   enable_multithreading()
+  # else
+  #   disable_multithreading()
+  # end
 
 end
 

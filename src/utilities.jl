@@ -1,3 +1,5 @@
+multithreading() = false
+
 function enable_multithreading()
   Core.eval(@__MODULE__, :(multithreading() = true))
 end
