@@ -120,11 +120,12 @@ while !isempty(pq)
     # do nothing
   else
     if nindex(t) == nindex(s) # coincident nodes                     # both are leaves
-    # done in preprocessing
+      processleafpair!(t, s)
+      postconsolidate!(t)
     elseif isleaf(s)         # both are leaves, we are done
       processleafpair!(t, s)
       postconsolidate!(t)
-    else
+    else # distinct nodes
       for s_child in cindices(s)
         sc = SpatialTree(TreeInfo(s), s_child)
         dist = nodedist(t, sc)
