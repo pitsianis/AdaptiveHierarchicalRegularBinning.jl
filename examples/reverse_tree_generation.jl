@@ -13,6 +13,21 @@ end
 
 Node(l) = Node(l, -1, nothing, Node[])
 
+
+"""
+    build_tree(l, d, bpl)
+
+Builds a hierarchical tree of nodes.
+This function recursively constructs the tree by distributing boxes (nodes) among levels, ensuring that each level can contain the specified number of boxes.
+
+Parameters:
+- `l::Int`: The current level of the tree.
+- `d::Int`: The number of dimensions.
+- `bpl::Vector{Int}`: An array specifying the number of boxes at each level of the tree.
+
+Returns:
+- `Vector{Node}`: An array of nodes representing the hierarchical tree.
+"""
 function build_tree(l, d, bpl)
   nb = bpl[l]
   L = length(bpl)
@@ -63,12 +78,22 @@ function build_tree(l, d, bpl)
 
     terminal_nodes = [Node(l) for _ in 1:nb]
     ret = [terminal_nodes..., non_terminal_nodes...]
-    length(ret) == BigInt(2)^(l*d) && throw("Not enough boxes on level $l to contain $(bpl[l]) boxes")
+    length(ret) > BigInt(2)^(l*d) && throw("Not enough boxes on level $l to contain $(bpl[l]) boxes")
     return ret
   end
 end
 
 
+"""
+    assign_codes(tree::Node, d)
+
+Assigns Morton codes to nodes in the tree.
+This function assigns unique Morton codes to nodes in the tree.
+
+Parameters:
+- `tree::Node`: The root node of the hierarchical tree.
+- `d::Int`: The number of dimensions.
+"""
 function assign_codes(tree::Node, d)
 
   length(tree.children) == 0 && return
@@ -89,6 +114,20 @@ function assign_codes(tree::Node, d)
 end
 
 
+
+"""
+    populate_tree(tree::Node, d, np, L, acc_codes=tuple())
+
+Populates the tree with points.
+This function populates the nodes in the tree with random points according to their Morton codes.
+
+Parameters:
+- `tree::Node`: The root node of the hierarchical tree.
+- `d::Int`: The number of dimensions.
+- `np::Int`: The maximum number of points per node to generate. (Minimum is np/2)
+- `L::Int`: The number of levels in the tree.
+- `acc_codes::Tuple{Int}`: A tuple containing accumulated node codes (internal use).
+"""
 function populate_tree(tree::Node, d, np, L, acc_codes=tuple())
   if isempty(tree.children)
     return populate_leaf(tree, d, np, acc_codes)
@@ -161,6 +200,23 @@ function test_equal_trees(tree1, tree2)
 
 end
 
+
+"""
+    gen_data(d, bpl, np; seed=0)
+
+Generates data for a hierarchical tree.
+This function creates a hierarchical tree, assigns codes to nodes, and populates the nodes with random points. It also performs several tests to ensure data integrity.
+
+Parameters:
+- `d::Int`: The number of dimensions.
+- `bpl::Vector{Int}`: An array specifying the number of boxes at each level of the tree.
+- `np::Int`: The maximum number of points per node to generate.
+- `seed::Int`: (Optional) The random seed for reproducibility.
+
+Returns:
+- `Node`: The root node of the hierarchical tree.
+- `Array{Float64, 2}`: An array of points generated for the tree.
+"""
 function gen_data(d, bpl, np; seed=0)
 
   Random.seed!(seed)
