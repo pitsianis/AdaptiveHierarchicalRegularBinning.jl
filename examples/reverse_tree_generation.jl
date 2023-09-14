@@ -126,21 +126,24 @@ Parameters:
 - `d::Int`: The number of dimensions.
 - `np::Int`: The maximum number of points per node to generate. (Minimum is np/2)
 - `L::Int`: The number of levels in the tree.
+- `data::Matrix`: Pre allocated memory to populate the tree nodes
+- `n::Int`: Offset of data. (internal use)
 - `acc_codes::Tuple{Int}`: A tuple containing accumulated node codes (internal use).
 """
-function populate_tree(tree::Node, d, np, L, acc_codes=tuple())
+function populate_tree(tree::Node, d, np, L, data, n=0, acc_codes=tuple())
   if isempty(tree.children)
-    return populate_leaf(tree, d, np, acc_codes)
+    return populate_leaf(tree, d, np, data, n, acc_codes)
   end
 
 
   for node in tree.children
-    populate_tree(node, d, np, L, (acc_codes..., node.code))
+    n = populate_tree(node, d, np, L, data, n, (acc_codes..., node.code))
   end
+  return n
 end
 
 
-function populate_leaf(tree::Node, d, np, codes)
+function populate_leaf(tree::Node, d, np, data, n, codes)
   sidelen = 1.0 / (1 << length(codes))
   center = ones(d)
   for code in Iterators.reverse(codes)
@@ -152,7 +155,10 @@ function populate_leaf(tree::Node, d, np, codes)
   center /= 2
 
   # Generate np random points within the cube
-  tree.points = rand(d, ceil(Int, max( cld(np,2)+1, rand() * np))) .* sidelen .+ center .- (sidelen/2)
+  nn = ceil(Int, max( cld(np,2)+1, rand() * np))
+  ldata = @view data[1:d, (n+1):(n+nn)]
+  ldata .= ldata .* sidelen .+ center .- (sidelen/2)
+  tree.points = ldata
 
   if all(codes .== 0)
     tree.points[:, 1] .= 0
@@ -161,7 +167,7 @@ function populate_leaf(tree::Node, d, np, codes)
   if all(codes .== 2^d-1)
     tree.points[:, 1] .= 1
   end
-  return
+  return n + nn
 end
 
 numpoints(tree) = isempty(children(tree)) ? size(tree.points, 2) : sum(numpoints, children(tree))
@@ -221,11 +227,14 @@ function gen_data(d, bpl, np; seed=0)
 
   Random.seed!(seed)
 
+  X = rand(d, sum(bpl) .* np)
+
+
   tree = Node(0, 0, nothing, build_tree(1, d, bpl))
   assign_codes(tree, d)
-  populate_tree(tree, d, np, length(bpl))
+  n = populate_tree(tree, d, np, length(bpl), X)
 
-  X = mapreduce(t->t.points, hcat, Leaves(tree))
+  X = @view X[1:d, 1:n]
 
   @assert test_pmax(tree, np)
   @assert test_unique(tree)
