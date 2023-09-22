@@ -34,3 +34,9 @@ end
     end
   end
 end
+
+@testset "node context" begin
+  tree = AdaptiveHierarchicalRegularBinning.ahrb(rand(8,10000), 12, 128; ctxtype=Int64)
+  tree.info.context .= 1:treesize(tree)
+  @test all(i -> getcontext(tree,i) == i, 1:treesize(tree) )
+end

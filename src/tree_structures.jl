@@ -164,6 +164,7 @@ $(TYPEDEF)
 Read context of a node
 """
 getcontext(t::SpatialTree) = TreeInfo(t).context[nindex(NodeInfo(t))]
+getcontext(t::SpatialTree,i::Int64) = TreeInfo(t).context[i]
 
 getglobalcontext(t::SpatialTree) = TreeInfo(t).globalcontext
 
