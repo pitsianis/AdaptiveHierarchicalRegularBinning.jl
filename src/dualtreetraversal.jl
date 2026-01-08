@@ -60,7 +60,7 @@ function prioritymultilevelinteractions(
   counter = 0
   pq[t,s] = (nodedist(t,s), counter -= 1)
   while !isempty(pq)
-    t,s = dequeue!(pq)
+    t,s = (popfirst!(pq)).first
     if prunepredicate(t, s)
       # do nothing
     elseif nindex(t) == nindex(s) # coincident nodes
@@ -115,7 +115,7 @@ pq = PriorityQueue{ SpatialTree{T, E, C, GTC}, Tuple{Float64,Int} }()
 counter = 0
 pq[s] = (nodedist(t,s), counter -= 1)
 while !isempty(pq)
-  s = dequeue!(pq)
+  s = (popfirst!(pq)).first
   if prunepredicate(t, s)
     # do nothing
   else
