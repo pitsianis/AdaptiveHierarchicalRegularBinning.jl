@@ -133,6 +133,40 @@ end
 
 points(t::SpatialTree) = @inbounds view(TreeInfo(t).points, :, range(t))
 encpoints(t::SpatialTree) = @inbounds @view TreeInfo(t).encoded[range(t)]
+
+"""
+  original_indices(node)
+  original_indices(tree)
+
+Return the indices of the original input columns represented by `node`.
+For a complete tree, `original_indices(tree)` returns the original-column
+index for every column in the tree's point order. The returned vectors are
+copies and can be modified without changing the tree.
+"""
+original_indices(t::SpatialTree) = copy(@view TreeInfo(t).perm[range(t)])
+
+"""
+    leafranges(tree; original=false)
+
+Return a lazy iterator over the point ranges represented by the leaves of
+`tree`. By default, ranges index the tree's reordered point matrix. With
+`original=true`, each item is a vector of indices into the original input
+matrix.
+"""
+function leafranges(t::SpatialTree; original::Bool=false)
+  original ? (original_indices(node) for node in Leaves(t)) : (range(node) for node in Leaves(t))
+end
+
+"""
+    occupancy_counts(tree; levels=1:tree.info.maxdepth)
+
+Return the number of occupied nodes at each requested depth. Missing depths
+have count zero; the order and element type of `levels` are preserved.
+"""
+function occupancy_counts(t::SpatialTree; levels=1:TreeInfo(t).maxdepth)
+  [count(node -> depth(node) == level, PreOrderDFS(t)) for level in levels]
+end
+
 isdeep(t::SpatialTree) = depth(t) >= TreeInfo(t).maxdepth
 issmall(t::SpatialTree) = length(t) <= TreeInfo(t).maxpoints
 qcenter(t::SpatialTree) = @inbounds TreeInfo(t).qcenters[nindex(t)]

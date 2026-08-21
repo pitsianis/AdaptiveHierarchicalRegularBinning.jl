@@ -40,3 +40,35 @@ end
   tree.info.context .= 1:treesize(tree)
   @test all(i -> getcontext(tree,i) == i, 1:treesize(tree) )
 end
+
+@testset "original indices" begin
+  X = rand(3, 100)
+  tree = ahrb(X, 5, 4; QT=UInt32)
+
+  @test X[:, original_indices(tree)] == points(tree)
+  @test isperm(original_indices(tree))
+
+  node = first(Leaves(tree))
+  indices = original_indices(node)
+  @test X[:, indices] == points(node)
+  indices[1] = 0
+  @test X[:, original_indices(node)] == points(node)
+end
+
+@testset "leaf ranges" begin
+  X = rand(3, 100)
+  tree = ahrb(X, 5, 4; QT=UInt32)
+  leaves = collect(Leaves(tree))
+
+  @test collect(leafranges(tree)) == range.(leaves)
+  original = collect(leafranges(tree; original=true))
+  @test all(X[:, indices] == points(node) for (node, indices) in zip(leaves, original))
+end
+
+@testset "occupancy counts" begin
+  X = fulltree(3, 2)
+  tree = ahrb(X, 3, 1; QT=UInt32)
+
+  @test occupancy_counts(tree) == [4, 16, 64, 0]
+  @test occupancy_counts(tree; levels=[0, 2, 5]) == [1, 16, 0]
+end

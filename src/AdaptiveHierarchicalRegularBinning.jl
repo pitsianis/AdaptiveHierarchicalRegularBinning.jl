@@ -11,6 +11,7 @@ export SpatialTree, TreeInfo, NodeInfo, ahrb, nindex, cindices
 export range, low, high, depth, pindex, bitlen, enctype, leaddim, eltype, isleaf, leafcount
 export points, encpoints, isdeep, qcenter, center, qsidelength, sidelength, staticselectdim
 export original_perm, original_perm!
+export original_indices, leafranges, occupancy_counts
 export setcontext!, getcontext, getglobalcontext
 export qbox2boxdistInf, qbox2boxdist, box2boxdist, point2boxdist
 export adjacentLeaf2LeafAnyLevel, adjacentSameLevel, neighborhood
