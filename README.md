@@ -11,10 +11,10 @@ The package
 or AHRB (pronounced as "arb", with a silent "h") for short, is a `Julia` package for binning data
 point features.
 
-The primary goal of AHRB  is to support and facilitate multi-resolution analysis of
+The primary goal of AHRB is to support and facilitate multi-resolution analysis of
 particle-particle relations or interactions, especially for near-neighbor location or search at
 multiple spatial scales or for far-neighbor filtering. The bins of AHRB are thereby chosen to be
-$d$-dimensional cubes, extending the quad tree and oct tree to a $d$-dimensional hierarchical data
+$d$-dimensional cubes, extending the quadtree and octtree to a $d$-dimensional hierarchical data
 structure.
 
 For further details, please see the 
@@ -24,13 +24,13 @@ For further details, please see the
 
 In the base case, given a set of $n$ point particles, or feature vectors, in a $d$-dimensional
 metric space, AHRB constructs a tree hierarchy that sorts the particles into nested bin nodes, up to
-a cut-off level $\ell_{c}$.  The bin nodes at each level correspond to non-overlapping
+a cut-off level $\ell_{c}$. The bin nodes at each level correspond to non-overlapping
 $d$-dimensional cubes of the same size, each bin containing at least one particle, each non-leaf bin
-containing more than $p_c$ particles.  The choice of the geometric shape and partition parameters
-$\ell_{c}$ and $p_{c}$ serve the purpose of facilitating downstream tasks that involve accurate
-multi-resolution analysis of particle-particle relationships.  AHRB offers additional
+containing more than $p_c$ particles. The choice of the geometric shape and partition parameters
+$\ell_{c}$ and $p_{c}$ serves the purpose of facilitating downstream tasks that involve accurate
+multi-resolution analysis of particle-particle relationships. AHRB offers additional
 functionalities, especially for near-neighbor extraction or far-neighbor filtering at various
-spatial scales.  When the feature dimension is low or modest, AHRB is competitive in time and space
+spatial scales. When the feature dimension is low or modest, AHRB is competitive in time and space
 complexities with other Julia packages for recursive binning of particles into nested cubes.
 Distinctively, AHRB is capable of accommodating higher-dimensional data sets, without suffering from
 high-order or exponential growth in memory usage with the increase in dimension.
@@ -71,7 +71,7 @@ tree = ahrb(X, maxL, maxP; QT=UInt128);
 # relationship of quantized and actual box centers and sides
 @assert all(qbox(node) ≈ tree.info.scale * box(node) for node in PreOrderDFS(tree))
 
-# each node represents a contiquous group of points, groups are ordered in preorder DFS
+# each node represents a contiguous group of points, groups are ordered in preorder DFS
 @assert all(minimum(low.(children(node))) == low(node) &&
           maximum(high.(children(node))) == high(node)
           for node in PreOrderDFS(tree) if !isleaf(node))
