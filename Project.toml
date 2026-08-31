@@ -16,6 +16,7 @@ Transducers = "28d57a85-8fef-5791-bfe6-a80928e7c999"
 [compat]
 AbstractTrees = "0.4"
 BitOperations = "0.2"
+DataStructures = "0.18"
 DocStringExtensions = "0.9"
 LoopVectorization = "0.12"
 ThreadsX = "0.1"
